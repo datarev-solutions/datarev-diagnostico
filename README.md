@@ -65,6 +65,14 @@ tamaño del assessment está topado, pero no hay defensa contra spam en volumen.
 Si aparece, lo natural es Vercel BotID o Turnstile antes del submit — no cerrar
 la función, que rompería la captura.
 
+**El linter de Supabase marca 4 WARN sobre estas funciones** (`anon` y
+`authenticated` pueden ejecutar funciones `SECURITY DEFINER`). Son
+**intencionales**: ese `EXECUTE` es justamente lo que permite capturar sin
+llave secreta. El propio aviso dice "revoca EXECUTE si no es intencional" — aquí
+lo es. No las revoques ni las pases a `SECURITY INVOKER`: eso rompe la captura
+por completo. Ambas llevan `set search_path = ''` y referencian todo con
+esquema explícito, que es la defensa que sí importa en una función DEFINER.
+
 Para ver los leads: [Table Editor](https://supabase.com/dashboard/project/xzeipsznuntnqsaawxmi/editor).
 
 ---
