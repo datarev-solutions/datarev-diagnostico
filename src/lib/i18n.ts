@@ -70,6 +70,15 @@ export const UI = {
     en: "A senior consultant · Live interpretation · A roadmap by the end",
   },
   orDoItYourself: { es: "o respóndelo por tu cuenta", en: "or answer it yourself" },
+  guidedRequestCta: { es: "Solicitar mi sesión de 1 hora", en: "Request my 1-hour session" },
+  guidedRequestDone: {
+    es: "Recibido. Un consultor de DataRev te escribe para agendar tu hora.",
+    en: "Got it. A DataRev consultant will email you to schedule your hour.",
+  },
+  guidedRequestNote: {
+    es: "Te confirmamos horario por correo, normalmente el mismo día hábil.",
+    en: "We confirm the slot by email, usually the same business day.",
+  },
 
   // Lead capture
   gateTitle: {
@@ -277,6 +286,8 @@ export const UI = {
   },
   goToStart: { es: "Ir al inicio", en: "Go to start" },
   backToSite: { es: "Ir a datarev.solutions", en: "Go to datarev.solutions" },
+  downloadBrochure: { es: "Descargar brochure", en: "Download brochure" },
+  visitSite: { es: "Nuestro sitio", en: "Our site" },
 } as const;
 
 export const INDUSTRIES: L[] = [

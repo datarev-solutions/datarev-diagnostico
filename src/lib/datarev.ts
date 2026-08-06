@@ -8,6 +8,16 @@ import type { L } from "./framework";
  * the main deck carry +52 (55) 9199-6815. Dante confirmed 9199-6815 on
  * 2026-08-05 — that is the number, the one in the pitch PDF is stale.
  */
+/**
+ * DataRev's own service brochure — the ES/EN PDF decks from the pitch deck
+ * (`DataRev Esp.pdf` / `DataRev Eng.pdf`), served locally under /brochure so
+ * the download never depends on a Drive share link staying valid.
+ */
+export const BROCHURE = {
+  es: "/brochure/datarev-es.pdf",
+  en: "/brochure/datarev-en.pdf",
+} as const;
+
 export const DATAREV = {
   name: "DataRev",
   fullName: "DataRev — Data Revolution",
@@ -19,18 +29,29 @@ export const DATAREV = {
 } as const;
 
 /**
- * Calendly targets. The 60-minute guided assessment is a separate event type
- * that has to exist in Calendly; until it does, this falls back to the public
- * 30-minute link so the CTA is never dead.
+ * Calendly targets.
+ *
+ * The guided assessment is offered as a full hour (confirmed 2026-08-06), but
+ * `calendly.com/admin-datarev` currently exposes only a 30-minute event type.
+ * Falling back to that link would promise an hour and then open a page saying
+ * thirty minutes — at the exact moment the visitor decides to trust us.
+ *
+ * So the guided path deliberately has NO fallback. When the 60-minute event
+ * does not exist, the CTA records the request and promises a callback instead
+ * of opening a mismatched calendar. Set the env var and it becomes one-click.
+ *
+ * The review call really is 30 minutes, so that one links out as normal.
  */
+const guidedUrl = process.env.NEXT_PUBLIC_CALENDLY_GUIDED_URL?.trim();
+
 export const BOOKING = {
   /** Guided full assessment, run live with a consultant. One hour, free. */
-  guided:
-    process.env.NEXT_PUBLIC_CALENDLY_GUIDED_URL ??
-    "https://calendly.com/admin-datarev/30min",
+  guided: guidedUrl || null,
+  /** True once the 60-minute event type exists and is wired up. */
+  guidedIsBookable: Boolean(guidedUrl),
   /** Short call to walk through an already-finished report. */
   review:
-    process.env.NEXT_PUBLIC_CALENDLY_REVIEW_URL ??
+    process.env.NEXT_PUBLIC_CALENDLY_REVIEW_URL?.trim() ||
     "https://calendly.com/admin-datarev/30min",
 } as const;
 

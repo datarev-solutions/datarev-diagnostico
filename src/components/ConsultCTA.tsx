@@ -75,10 +75,24 @@ export function ConsultCTA({
   const [name, setName] = useState(lead?.name ?? "");
   const [expanded, setExpanded] = useState(false);
   const [sending, setSending] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   const bookingUrl = kind === "guided_full" ? BOOKING.guided : BOOKING.review;
+  // The guided hour has no calendar until the 60-minute event type exists.
+  // Until then we take the request and promise a callback rather than open a
+  // 30-minute page under a one-hour promise.
+  const bookable = kind === "guided_full" ? BOOKING.guidedIsBookable : true;
 
-  /** Already identified: record and go straight to the calendar. */
+  function finish() {
+    setSending(false);
+    if (bookable && bookingUrl) {
+      window.open(bookingUrl, "_blank", "noopener,noreferrer");
+    } else {
+      setRequested(true);
+    }
+  }
+
+  /** Already identified: record, then either open the calendar or confirm. */
   async function bookDirect() {
     setSending(true);
     await recordRequest({
@@ -90,8 +104,7 @@ export function ConsultCTA({
       kind,
       locale,
     });
-    setSending(false);
-    window.open(bookingUrl, "_blank", "noopener,noreferrer");
+    finish();
   }
 
   async function bookWithForm(event: FormEvent) {
@@ -106,13 +119,17 @@ export function ConsultCTA({
       kind,
       locale,
     });
-    setSending(false);
-    window.open(bookingUrl, "_blank", "noopener,noreferrer");
+    finish();
   }
 
   const title = kind === "guided_full" ? UI.guidedTitle : UI.nextStepTitle;
   const lead_ = kind === "guided_full" ? UI.guidedLead : UI.nextStepLead;
-  const cta = kind === "guided_full" ? UI.guidedCta : UI.nextStepCta;
+  const cta =
+    kind !== "guided_full"
+      ? UI.nextStepCta
+      : bookable
+        ? UI.guidedCta
+        : UI.guidedRequestCta;
 
   const shell =
     variant === "band"
@@ -144,7 +161,16 @@ export function ConsultCTA({
         <CalendarIcon className="hidden h-9 w-9 shrink-0 text-[var(--cyan)] opacity-70 sm:block" />
       </div>
 
-      {knownEmail ? (
+      {requested ? (
+        <div className="mt-5 rounded-lg border border-[var(--cyan)]/40 bg-[var(--surface-2)] p-4">
+          <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
+            {t(UI.guidedRequestDone)}
+          </p>
+          <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+            {t(UI.guidedRequestNote)}
+          </p>
+        </div>
+      ) : knownEmail ? (
         <button
           type="button"
           onClick={() => void bookDirect()}

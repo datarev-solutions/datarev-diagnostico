@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DATAREV } from "@/lib/datarev";
+import { BROCHURE, DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
 import { useApp } from "./AppProvider";
 import { AccountChip } from "./AccountChip";
@@ -78,6 +78,32 @@ export function LanguageToggle() {
   );
 }
 
+/** Brochure download — points at the ES or EN deck to match the active locale. */
+export function BrochureLink({ className = "" }: { className?: string }) {
+  const { t, locale } = useApp();
+  return (
+    <a
+      href={BROCHURE[locale]}
+      download
+      className={`inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--cyan)] ${className}`}
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className="h-3.5 w-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M8 2v8m0 0 3-3M8 10 5 7M3 13.5h10" />
+      </svg>
+      {t(UI.downloadBrochure)}
+    </a>
+  );
+}
+
 export function Header() {
   const { t } = useApp();
 
@@ -91,6 +117,7 @@ export function Header() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
+          <BrochureLink className="hidden md:inline-flex" />
           <AccountChip />
           <LanguageToggle />
         </div>
@@ -100,7 +127,7 @@ export function Header() {
 }
 
 export function Footer() {
-  const { t } = useApp();
+  const { t, locale } = useApp();
   return (
     <footer className="no-print mt-20 border-t border-[var(--border)] py-8">
       <div className="mx-auto max-w-6xl px-5">
@@ -112,7 +139,16 @@ export function Footer() {
                 href={DATAREV.site}
                 className="transition hover:text-[var(--cyan)]"
               >
-                datarev.solutions
+                {t(UI.visitSite)} · datarev.solutions
+              </a>
+            </li>
+            <li>
+              <a
+                href={BROCHURE[locale]}
+                download
+                className="font-semibold transition hover:text-[var(--cyan)]"
+              >
+                {t(UI.downloadBrochure)}
               </a>
             </li>
             <li>
