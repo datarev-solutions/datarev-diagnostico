@@ -28,6 +28,11 @@ export function DataRevLogo({ className = "" }: { className?: string }) {
         priority
         className="brand-logo-dark h-full w-auto"
       />
+      {/* `priority` on the light copy too, deliberately. It sits at
+          display:none on the dark screen, and Next/Image's lazy path uses an
+          IntersectionObserver that never fires for a hidden element — so
+          without this the print logo is still unloaded when the PDF renders
+          and the report goes out with a blank masthead. */}
       <Image
         src="/brand/datarev-logo.png"
         alt=""
@@ -35,6 +40,7 @@ export function DataRevLogo({ className = "" }: { className?: string }) {
         width={640}
         height={454}
         sizes="120px"
+        priority
         className="brand-logo-light h-full w-auto"
       />
     </span>
