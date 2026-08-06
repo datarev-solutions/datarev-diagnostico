@@ -4,9 +4,9 @@ import type { L } from "./framework";
  * Brand constants, taken from the live site (datarev.solutions), the Spanish
  * services deck and the pitch PDF.
  *
- * Note on the phone number: the pitch PDF carries +52 (55) 6382-7421 while the
- * live site and the main deck both carry +52 (55) 9199-6815. The site wins here
- * because it is the number DataRev publishes today.
+ * Phone number: the pitch PDF carries +52 (55) 6382-7421 while the live site and
+ * the main deck carry +52 (55) 9199-6815. Dante confirmed 9199-6815 on
+ * 2026-08-05 — that is the number, the one in the pitch PDF is stale.
  */
 export const DATAREV = {
   name: "DataRev",
