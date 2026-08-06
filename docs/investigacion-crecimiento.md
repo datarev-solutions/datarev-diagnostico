@@ -231,6 +231,25 @@ documentación oficial — pero es consistente con el rediseño del programa.
 4. **El costo de entrada es bajo**: USD 2,500/año de AWS más exámenes. Un
    orden de magnitud menos que un evento propio.
 
+### Reducir aún más el costo de entrada
+
+Los tres hiperescaladores tienen programas de startups con créditos de nube y,
+en el caso de AWS Activate, **vales de examen de certificación gratis**
+incluidos en el training del programa
+([squareops.com, guía AWS credits 2026](https://squareops.com/blog/who-is-eligible-for-aws-startup-credits-and-how-to-apply-2026-guide/);
+[Gart Solutions, comparativa 2026](https://gartsolutions.com/comparing-aws-gcp-and-azure-startup-programs/)).
+AWS Activate Founders (self-service, USD 1,000 en créditos) no exige
+inversión ni acelerador — sólo ser una startup de tecnología autofinanciada
+con cuenta AWS activa.
+
+> **Advertencia de elegibilidad**: estos programas están diseñados para
+> empresas que *construyen sobre* la nube (SaaS, producto propio), no
+> explícitamente para consultoras de servicios. DataRev puede calificar —
+> tiene el diagnóstico como producto propio— pero conviene verificar
+> elegibilidad exacta antes de presupuestar sobre créditos que quizá no
+> apliquen. Los vales de examen gratis son la parte más relevante aquí, no
+> los créditos de cómputo en sí.
+
 ### La trampa que hay que evitar
 
 Los tres programas escalan con **oportunidades cerradas**, no con

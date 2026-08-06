@@ -408,32 +408,76 @@ li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;
 <!-- 12 -->
 <section class="slide">
   <div class="eyebrow">Presupuesto</div>
-  <h2>Qué cuesta, en dólares</h2>
+  <h2>Casi todo lo crucial es gratis o casi</h2>
+  <p class="lead">Son una consultora empezando: el plan no compromete gasto que no se pueda
+  pagar con la facturación de hoy. Lo caro se deja en $0 hasta que haya tracción para
+  pagarlo — no se elimina, se pospone.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:14px">
+    <div>
+      <p style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px">Hoy · Fases 0–1 · Lo crucial</p>
+      <table style="margin-top:0">
+        <thead><tr><th>Concepto</th><th>Costo</th></tr></thead>
+        <tbody>
+          <tr><td class="k">CRM (tier gratis: HubSpot o Notion)</td><td>$0</td></tr>
+          <tr><td class="k">Registro APN, MAICPP, Google Partner Network</td><td>$0</td></tr>
+          <tr><td class="k">Casos, ofertas y contenido LinkedIn (interno)</td><td>$0</td></tr>
+          <tr><td class="k">Estudio: usa el diagnóstico ya construido</td><td>$0</td></tr>
+          <tr><td class="k">4 certificaciones fundacionales (2 AWS + 2 Azure)</td><td>660–1,320 · única vez</td></tr>
+        </tbody>
+      </table>
+      <div class="card hi" style="margin-top:10px;padding:14px 16px">
+        <div class="num" style="color:var(--cyan);font-size:26px">~$0–100/mes</div>
+        <p class="src" style="margin-top:4px">+ ~$700–1,300 una sola vez, en exámenes</p>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Después · sólo si hay tracción · Fases 2–3</p>
+      <table style="margin-top:0">
+        <thead><tr><th>Concepto</th><th>Costo diferido</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Cuota anual AWS APN, tier Select</td><td>2,500 / año</td></tr>
+          <tr><td class="k">Evento propio (60–80 asistentes)</td><td>5,000–9,000</td></tr>
+          <tr><td class="k">Conferencias de industria (3)</td><td>4,000–7,000</td></tr>
+          <tr><td class="k">Pauta LinkedIn (retargeting del estudio)</td><td>1,000–2,500/mes</td></tr>
+          <tr><td class="k">SDR de tiempo completo</td><td>1,800–3,000/mes</td></tr>
+        </tbody>
+      </table>
+      <div class="card" style="margin-top:10px;padding:14px 16px">
+        <div class="num" style="color:var(--text-secondary);font-size:26px">$0 hoy</div>
+        <p class="src" style="margin-top:4px">Se activa por hito, no por calendario — ver siguiente lámina.</p>
+      </div>
+    </div>
+  </div>
+  <div class="warn-box" style="border-color:var(--line);background:rgba(8,18,58,.6);margin-top:16px">
+    <p><strong>Por qué esto es estratégico, no sólo barato:</strong> el estudio, el evento y
+    el SDR sólo generan retorno si ya hay expertise visible, referencias y casos certificados
+    detrás. Gastar en eso antes sería pagar por audiencia que la consultora todavía no puede
+    atender ni convertir.</p></div>
+</section>
+
+<!-- 12b -->
+<section class="slide">
+  <div class="eyebrow">Presupuesto</div>
+  <h2>Cuándo se activa cada gasto diferido</h2>
+  <p class="lead">Cada partida se paga la primera vez que el hito que la justifica ya existe
+  — nunca antes.</p>
   <table>
-    <thead><tr><th>Concepto</th><th>Fase</th><th>USD/mes</th><th>Una vez</th></tr></thead>
+    <thead><tr><th>Gasto</th><th>Se activa cuando...</th><th>Costo</th></tr></thead>
     <tbody>
-      <tr><td class="k">CRM + datos de contacto</td><td>0–3</td><td>150–400</td><td>—</td></tr>
-      <tr><td class="k">Diseño de casos y ofertas</td><td>0</td><td>—</td><td>1,500–3,000</td></tr>
-      <tr><td class="k">Cuota anual AWS Partner Network</td><td>0–3</td><td>—</td><td>2,500 / año</td></tr>
-      <tr><td class="k">Certificaciones (12–16 exámenes)</td><td>0–2</td><td>—</td><td>2,000–5,300</td></tr>
-      <tr><td class="k">Contenido y edición de video</td><td>1–3</td><td>800–1,500</td><td>—</td></tr>
-      <tr><td class="k">Estudio de madurez (campo + diseño)</td><td>2</td><td>—</td><td>4,000–8,000</td></tr>
-      <tr><td class="k">Evento propio (60–80 asistentes)</td><td>2</td><td>—</td><td>5,000–9,000</td></tr>
-      <tr><td class="k">Conferencias de industria (3)</td><td>2–3</td><td>—</td><td>4,000–7,000</td></tr>
-      <tr><td class="k">Pauta LinkedIn (retargeting del estudio)</td><td>2–3</td><td>1,000–2,500</td><td>—</td></tr>
-      <tr><td class="k">SDR de tiempo completo (México)</td><td>3</td><td>1,800–3,000</td><td>—</td></tr>
+      <tr><td class="k">Cuota AWS APN Select</td><td>hay 3 oportunidades lanzadas con MRR ≥ USD 1,500 (requisito del propio tier)</td><td>2,500/año</td></tr>
+      <tr><td class="k">Evento propio</td><td>el estudio de madurez tiene 150+ respuestas listas para presentar</td><td>5,000–9,000</td></tr>
+      <tr><td class="k">Conferencias de industria</td><td>hay 3 casos publicables con cifras para mostrar en el stand</td><td>4,000–7,000</td></tr>
+      <tr><td class="k">Pauta LinkedIn</td><td>el estudio ya está publicado y hay algo que promocionar</td><td>1,000–2,500/mes</td></tr>
+      <tr><td class="k">Primer SDR</td><td>el pipeline de referencias + partner cloud supera lo que los socios atienden</td><td>1,800–3,000/mes</td></tr>
     </tbody>
   </table>
-  <div class="cards c3" style="margin-top:18px">
-    <div class="card"><h3>Fases 0–1</h3><div class="num grad">~$1.5K</div>
-      <p class="src">USD/mes + ~$8–11K de arranque</p></div>
-    <div class="card"><h3>Fase 2</h3><div class="num grad">~$3.5K</div>
-      <p class="src">USD/mes + ~$20K de eventos y estudio</p></div>
-    <div class="card hi"><h3>Fase 3</h3><div class="num" style="color:var(--cyan)">~$7K</div>
-      <p class="src">USD/mes con SDR y pauta</p></div>
-  </div>
-  <p class="src">Referencia de Hinge 2026: las firmas de alto crecimiento invierten
-  <strong>12% de su facturación</strong> en marketing; las que no crecen, 5%.</p>
+  <div class="warn-box" style="border-color:rgba(0,194,255,.4);background:rgba(0,194,255,.07);margin-top:16px">
+    <p><strong style="color:var(--cyan)">Nada se compromete por calendario.</strong> Si un
+    hito no se cumple, el gasto correspondiente sigue en $0 — el plan no obliga a gastar para
+    "cumplir la Fase 2", obliga a ganarse el derecho a gastar.</p></div>
+  <p class="src" style="margin-top:10px">Referencia de Hinge 2026: las firmas de alto
+  crecimiento invierten 12% de su facturación en marketing — aplicable una vez que exista
+  facturación que medir.</p>
 </section>
 
 <!-- 13 -->
