@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataRev · Plan de crecimiento 10x</title>
+<style>
+:root{
+  --navy-900:#04081f; --navy-850:#060c28; --navy-800:#08123a; --navy-700:#0b1c57;
+  --cyan:#00c2ff; --cyan-soft:#5fd8ff; --blue:#1763ff; --blue-400:#3d8bff;
+  --ink:#eaf1ff; --muted:#aab4d4; --faint:#7b87ad;
+  --line:rgba(120,150,220,.18);
+  --grad:linear-gradient(120deg,#00c2ff 0%,#1763ff 48%,#0a2bb0 100%);
+  /* Trío categórico validado con el checker de dataviz sobre #08123a:
+     peor par deutan ΔE 9.4, todos con contraste >3:1 */
+  --s1:#1763ff; --s2:#d95926; --s3:#199e70;
+  --good:#3fa93f; --warn:#c98500; --bad:#e66767;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--navy-900);color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  overflow:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(to right,#12224d 1px,transparent 1px),
+                   linear-gradient(to bottom,#12224d 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(100% 70% at 50% 0%,#000 0%,transparent 75%);
+  mask-image:radial-gradient(100% 70% at 50% 0%,#000 0%,transparent 75%);opacity:.5}
+.deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+@media(min-width:769px){.deck{max-width:calc(100vh*16/9);max-height:calc(100vw*9/16);
+  margin:auto;position:absolute;inset:0}}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(24px,4vw,64px);opacity:0;visibility:hidden;transition:opacity .35s;
+  overflow-y:auto;z-index:1}
+.slide.active{opacity:1;visibility:visible}
+.eyebrow{font-size:clamp(10px,1.1vw,12px);font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+h1{font-size:clamp(30px,5.2vw,62px);line-height:1.05;letter-spacing:-.02em;font-weight:800}
+h2{font-size:clamp(22px,3.4vw,40px);line-height:1.12;letter-spacing:-.015em;
+  font-weight:750;margin-bottom:14px}
+h3{font-size:clamp(14px,1.7vw,19px);font-weight:700;margin-bottom:6px}
+p,li{font-size:clamp(13px,1.45vw,17px);line-height:1.55;color:var(--muted)}
+strong{color:var(--ink);font-weight:650}
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent}
+.lead{max-width:62ch}
+.cards{display:grid;gap:clamp(10px,1.4vw,18px);margin-top:clamp(14px,2vw,26px)}
+.c2{grid-template-columns:repeat(2,1fr)} .c3{grid-template-columns:repeat(3,1fr)}
+.c4{grid-template-columns:repeat(4,1fr)}
+.card{background:rgba(8,18,58,.72);border:1px solid var(--line);border-radius:14px;
+  padding:clamp(12px,1.6vw,20px);backdrop-filter:blur(8px)}
+.card.hi{border-color:rgba(0,194,255,.45);box-shadow:0 0 28px -8px rgba(0,194,255,.3)}
+.num{font-size:clamp(26px,4.2vw,50px);font-weight:800;line-height:1;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.src{font-size:clamp(9.5px,1vw,11.5px);color:var(--faint);margin-top:8px}
+.tag{display:inline-block;font-size:clamp(9.5px,1vw,11px);font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em;padding:4px 9px;border-radius:999px;
+  background:var(--cyan);color:var(--navy-900)}
+.tag.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:clamp(11px,1.25vw,15px)}
+th{text-align:left;font-size:clamp(9.5px,1vw,11.5px);text-transform:uppercase;
+  letter-spacing:.09em;color:var(--faint);font-weight:700;padding:0 10px 8px 0;
+  border-bottom:1px solid var(--line)}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);color:var(--muted);
+  vertical-align:top}
+td.k{color:var(--ink);font-weight:600}
+.bar{height:11px;border-radius:6px;background:rgba(120,150,220,.16);overflow:hidden}
+.bar span{display:block;height:100%;border-radius:6px}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.row .lbl{flex:0 0 clamp(120px,17vw,230px);font-size:clamp(11px,1.25vw,15px);color:var(--ink)}
+.row .bar{flex:1} .row .val{flex:0 0 auto;font-variant-numeric:tabular-nums;
+  font-weight:700;font-size:clamp(11px,1.25vw,15px);min-width:44px;text-align:right}
+.nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;
+  align-items:center;gap:16px;z-index:100}
+.nav button{background:rgba(120,150,220,.14);border:1px solid var(--line);color:var(--ink);
+  width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px}
+.nav button:hover{background:rgba(0,194,255,.22)}
+.counter{color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums}
+.prog{position:fixed;top:0;left:0;height:3px;background:var(--grad);
+  transition:width .3s;z-index:100}
+.foot{position:absolute;left:clamp(24px,4vw,64px);bottom:clamp(14px,2vw,26px);
+  font-size:clamp(9.5px,1vw,11.5px);color:var(--faint)}
+.phase{border-left:3px solid var(--cyan);padding-left:14px;margin-bottom:12px}
+.phase .when{font-size:clamp(9.5px,1vw,11.5px);color:var(--cyan);font-weight:700;
+  text-transform:uppercase;letter-spacing:.09em}
+ul{list-style:none} li{position:relative;padding-left:17px;margin-bottom:6px}
+li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:5px;
+  border-radius:50%;background:var(--cyan)}
+.warn-box{border:1px solid rgba(230,103,103,.45);background:rgba(230,103,103,.08);
+  border-radius:12px;padding:clamp(12px,1.6vw,18px);margin-top:14px}
+@media(max-width:768px){.c3,.c4{grid-template-columns:repeat(2,1fr)}
+  .row .lbl{flex-basis:96px}}
+@media(max-width:480px){.c2,.c3,.c4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="prog" id="prog"></div>
+<div class="deck">
+
+<!-- 1 -->
+<section class="slide active">
+  <div class="eyebrow">DataRev · Data Revolution · Agosto 2026</div>
+  <h1>Plan de crecimiento <span class="grad">10x</span></h1>
+  <p class="lead" style="margin-top:16px;font-size:clamp(15px,1.9vw,22px)">
+    Qué genera pipeline de verdad para una consultora boutique de datos e IA —
+    y por qué el diagnóstico, solo, no lo va a hacer.
+  </p>
+  <div class="cards c3" style="margin-top:32px">
+    <div class="card"><div class="num grad">18</div><p class="src">fuentes revisadas</p></div>
+    <div class="card"><div class="num grad">495</div><p class="src">firmas en el estudio base (Hinge 2026)</p></div>
+    <div class="card"><div class="num grad">4</div><p class="src">motores propuestos</p></div>
+  </div>
+  <div class="foot">Basado en Hinge High Growth Study 2026, XPX/Hinge Referral Study, Forrester, 6Sense, G2, Wynter</div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="eyebrow">Antes de empezar</div>
+  <h2>Cuatro supuestos que hay que confirmar</h2>
+  <p class="lead">No tengo su facturación actual ni el presupuesto disponible. El plan
+  está construido sobre estos supuestos; si alguno está mal, cambian las cifras
+  — no la estrategia.</p>
+  <div class="cards c2">
+    <div class="card"><h3>1 · Etapa temprana</h3><p>DataRev opera desde ~mediados de 2026.
+      El activo es la credibilidad del equipo, no una cartera existente.</p></div>
+    <div class="card"><h3>2 · Presupuesto acotado</h3><p>Menos de USD 5K/mes para adquisición
+      en los primeros meses. El plan prioriza lo orgánico.</p></div>
+    <div class="card"><h3>3 · Restricción = demanda</h3><p>El cuello de botella es que
+      no llegan suficientes prospectos calificados, no la capacidad de entrega.</p></div>
+    <div class="card"><h3>4 · Capacidad de entrega</h3><p>5 socios senior pueden absorber
+      6–10 proyectos simultáneos antes de necesitar contratar.</p></div>
+  </div>
+  <div class="warn-box"><p><strong>Si el supuesto 3 es falso</strong> —es decir, si llegan
+    prospectos y no cierran— este plan está mal ordenado: meter más leads arriba
+    desperdiciaría dinero. Primero se arregla la conversión.</p></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="eyebrow">La tesis contraria</div>
+  <h2>El assessment <span class="grad">no</span> es el motor de demanda</h2>
+  <p class="lead">La intuición de que el diagnóstico traería clientes es razonable,
+  pero la evidencia la contradice de forma bastante directa.</p>
+  <div class="cards c3">
+    <div class="card hi"><div class="num" style="color:var(--cyan)">9%</div>
+      <p>de los compradores B2B considera confiable el <strong>sitio web</strong> de un proveedor.</p>
+      <p class="src">G2 Buyer Behavior Report, 2024</p></div>
+    <div class="card hi"><div class="num" style="color:var(--cyan)">42%</div>
+      <p>pone el <strong>boca en boca</strong> como el canal #1 que mete a un proveedor
+      en la lista corta.</p><p class="src">Wynter, encuesta a CMOs B2B</p></div>
+    <div class="card hi"><div class="num" style="color:var(--bad)">2%</div>
+      <p>es lo que aporta la <strong>publicidad pagada</strong>. El outbound en frío,
+      otro 2%.</p><p class="src">Wynter, misma encuesta</p></div>
+  </div>
+  <div class="warn-box" style="border-color:var(--line);background:rgba(8,18,58,.6)">
+    <p><strong>Honestidad sobre las fuentes:</strong> las cifras que circulan de que los
+    quizzes convierten al 42–79% vienen casi todas de <em>vendedores de software
+    de quizzes</em>. No encontré ningún estudio independiente que las respalde para
+    servicios de ticket alto. Trátenlas como marketing, no como evidencia.</p></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="eyebrow">Entonces sí sirve, pero para otra cosa</div>
+  <h2>Tres usos legítimos del diagnóstico</h2>
+  <div class="cards c3">
+    <div class="card"><span class="tag ghost">Calificar</span>
+      <h3 style="margin-top:10px">Contexto antes de la llamada</h3>
+      <p>Llegar a la primera conversación sabiendo el nivel de madurez acorta el ciclo
+      y evita reuniones con quien no tiene presupuesto.</p></div>
+    <div class="card"><span class="tag ghost">Reactivar</span>
+      <h3 style="margin-top:10px">Excusa legítima para contactar</h3>
+      <p>Permite escribirle a toda la red sin que sea una venta:
+      "te comparto un diagnóstico, dime si el resultado te hace sentido".</p></div>
+    <div class="card hi"><span class="tag">El grande</span>
+      <h3 style="margin-top:10px">Producir datos propios</h3>
+      <p>Cada diagnóstico contestado es un dato. 200 diagnósticos son un estudio que
+      nadie más en México tiene. <strong>Ahí está el 10x.</strong></p></div>
+  </div>
+  <p style="margin-top:22px" class="lead">La investigación original aparece entre las
+  técnicas de <strong>mayor impacto</strong> del estudio Hinge 2026. DataRev ya construyó
+  el instrumento para generarla — sólo lo estaba usando para lo que menos rinde.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="eyebrow">Hinge High Growth Study 2026 · 495 firmas</div>
+  <h2>Qué usan las firmas que sí crecen</h2>
+  <p class="lead">Por primera vez en 11 ediciones, <strong>organizar eventos propios</strong>
+  encabeza la lista de impacto.</p>
+  <div style="margin-top:20px">
+    <div class="row"><span class="lbl">Eventos propios</span>
+      <span class="bar"><span style="width:100%;background:var(--s1)"></span></span><span class="val">Alto</span></div>
+    <div class="row"><span class="lbl">Conferencias y ferias</span>
+      <span class="bar"><span style="width:96%;background:var(--s1)"></span></span><span class="val">Alto</span></div>
+    <div class="row"><span class="lbl">Liderazgo de opinión</span>
+      <span class="bar"><span style="width:88%;background:var(--s1)"></span></span><span class="val">Alto</span></div>
+    <div class="row"><span class="lbl">Investigación original</span>
+      <span class="bar"><span style="width:82%;background:var(--cyan)"></span></span><span class="val">Alto</span></div>
+    <div class="row"><span class="lbl">Video</span>
+      <span class="bar"><span style="width:70%;background:var(--s3)"></span></span><span class="val">Medio</span></div>
+    <div class="row"><span class="lbl">SEO / GEO</span>
+      <span class="bar"><span style="width:62%;background:var(--s3)"></span></span><span class="val">Medio</span></div>
+    <div class="row"><span class="lbl">Publicidad pagada</span>
+      <span class="bar"><span style="width:24%;background:var(--s2)"></span></span><span class="val">Bajo</span></div>
+  </div>
+  <p class="src" style="margin-top:14px">Orden relativo de impacto reportado en Hinge 2026.
+  Las barras ilustran el ranking, no una escala numérica publicada.</p>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="eyebrow">El dato que ordena todo lo demás</div>
+  <h2>La partida se gana <span class="grad">antes</span> del RFP</h2>
+  <div class="cards c2">
+    <div class="card hi"><div class="num" style="color:var(--cyan)">94%</div>
+      <p>de los comités de compra arma y <strong>ordena su lista corta antes</strong>
+      de contactar a cualquier proveedor.</p><p class="src">6Sense, 2025</p></div>
+    <div class="card hi"><div class="num" style="color:var(--cyan)">80%</div>
+      <p>de las veces gana <strong>el que quedó en primer lugar</strong> de esa lista.</p>
+      <p class="src">6Sense, 2025</p></div>
+  </div>
+  <p class="lead" style="margin-top:24px">Forrester encontró además que el <strong>92% de
+  los compradores empieza con al menos un proveedor ya en mente</strong>. Cuando llega
+  el RFP, la decisión está tomada en un 80%.</p>
+  <p class="lead" style="margin-top:14px;color:var(--ink)"><strong>Implicación para DataRev:</strong>
+  el trabajo no es responder RFPs ni capturar leads. Es <em>estar en la cabeza del
+  comprador meses antes</em> de que exista el proyecto.</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="eyebrow">Motor dominante</div>
+  <h2>Referencias: el 60% del negocio, y casi nadie lo sistematiza</h2>
+  <div class="cards c4">
+    <div class="card"><div class="num grad">60%</div><p>del negocio llega por referencia
+      para más de la mitad de los consultores.</p></div>
+    <div class="card"><div class="num grad">83%</div><p>de los clientes satisfechos está
+      <strong>dispuesto</strong> a referir.</p></div>
+    <div class="card hi"><div class="num" style="color:var(--bad)">29%</div>
+      <p>realmente lo hace. <strong>Ahí está la fuga.</strong></p></div>
+    <div class="card"><div class="num grad">27.4%</div><p>de lo que dispara una referencia
+      es <strong>expertise visible</strong>.</p></div>
+  </div>
+  <div class="card hi" style="margin-top:20px">
+    <h3>La reciprocidad es medible: r = +0.72</h3>
+    <p>Correlación entre referencias <em>hechas</em> y <em>recibidas</em>. El participante
+    promedio recibió 9 referencias en 6 meses; <strong>el top 20% de los que más refieren
+    recibió más de 24</strong>. Referir primero no es cortesía: es el mecanismo.</p>
+    <p class="src">XPX &amp; Hinge Referral Marketing Study · 262 participantes, 25.6% consultores ·
+    Texas Tech (83%/29%)</p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="eyebrow">La aritmética</div>
+  <h2>10x no sale de 10x más llamadas</h2>
+  <p class="lead">Sale de multiplicar dos factores modestos. Es la única forma realista
+  con un equipo de cinco socios.</p>
+  <div class="cards c3" style="margin-top:24px">
+    <div class="card"><span class="tag ghost">Factor 1</span>
+      <div class="num grad" style="margin-top:10px">3.0x</div>
+      <h3 style="margin-top:8px">Ticket promedio</h3>
+      <p>Especialización + productización. El 57% de los especialistas cobra por valor,
+      contra 29% de los generalistas.</p></div>
+    <div class="card"><span class="tag ghost">Factor 2</span>
+      <div class="num grad" style="margin-top:10px">3.5x</div>
+      <h3 style="margin-top:8px">Número de clientes</h3>
+      <p>Motor de referencias + expertise visible + eventos. Sin equipo comercial grande.</p></div>
+    <div class="card hi"><span class="tag">Resultado</span>
+      <div class="num" style="color:var(--cyan);margin-top:10px">10.5x</div>
+      <h3 style="margin-top:8px">En 18 meses</h3>
+      <p>Con retención y expansión de cuenta, el compuesto es mayor.</p></div>
+  </div>
+  <div class="warn-box" style="border-color:var(--line);background:rgba(8,18,58,.6)">
+    <p><strong>El benchmark confirma dónde está la palanca:</strong> servicios profesionales
+    tiene la tasa de cierre más alta (28%) y el ciclo más corto (51 días) de todo B2B,
+    pero la velocidad de pipeline más baja — por ticket promedio de USD 8,900.
+    <strong>El problema no es cerrar. Es el tamaño del trato.</strong></p>
+    <p class="src">The Digital Bloom, benchmarks de pipeline B2B 2025</p></div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="eyebrow">La propuesta</div>
+  <h2>Cuatro motores, en este orden</h2>
+  <div class="cards c4">
+    <div class="card hi"><span class="tag">01</span><h3 style="margin-top:10px">Expertise visible</h3>
+      <p>Amazon, Google, Santander, Nemak, AB InBev. Es el activo más desperdiciado hoy:
+      está en un PDF, no en el mercado.</p></div>
+    <div class="card hi"><span class="tag">02</span><h3 style="margin-top:10px">Máquina de referencias</h3>
+      <p>Sistema explícito de pedir y dar. Cierra la fuga del 83% → 29%.</p></div>
+    <div class="card hi"><span class="tag">03</span><h3 style="margin-top:10px">Investigación original</h3>
+      <p>"Estado de la Madurez de Datos e IA en México". El diagnóstico deja de ser
+      lead magnet y se vuelve instrumento de medición.</p></div>
+    <div class="card hi"><span class="tag">04</span><h3 style="margin-top:10px">Ticket y producto</h3>
+      <p>Ofertas empaquetadas con precio y alcance cerrados. Sube el ticket sin subir
+      las horas.</p></div>
+  </div>
+  <p class="lead" style="margin-top:24px">El orden importa: los motores 1 y 2 producen
+  pipeline en semanas con casi cero presupuesto. Los motores 3 y 4 son los que
+  convierten ese pipeline en 10x, pero tardan meses en madurar.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="eyebrow">Roadmap</div>
+  <h2>Cuatro fases, 18 meses</h2>
+  <div class="phase"><div class="when">Fase 0 · Semanas 1–4 · Fundamentos</div>
+    <p>Elegir <strong>un nicho declarado</strong> (recomendación: manufactura y consumo en
+    México, donde el equipo ya tiene Nemak y AB InBev). Empaquetar 3 ofertas con precio
+    cerrado. Publicar 3 casos de éxito con cifras. Instrumentar el CRM.</p></div>
+  <div class="phase"><div class="when">Fase 1 · Meses 2–4 · Referencias y visibilidad</div>
+    <p>Lista de 100 fuentes de referencia. Rutina semanal de referir primero. Los 5 socios
+    publicando en LinkedIn con cadencia fija. Reactivar la red con el diagnóstico como excusa.</p></div>
+  <div class="phase"><div class="when">Fase 2 · Meses 4–8 · Investigación y eventos</div>
+    <p>Levantar 200+ diagnósticos. Publicar el <strong>primer estudio de madurez de datos
+    e IA en México</strong>. Presentarlo en un evento propio y en 3 conferencias de industria.</p></div>
+  <div class="phase"><div class="when">Fase 3 · Meses 8–18 · Escala</div>
+    <p>Primer SDR. Alianzas con AWS, Microsoft y Snowflake (co-venta y referidos).
+    Cuentas enterprise multi-año. Segunda edición del estudio.</p></div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="eyebrow">Responsables</div>
+  <h2>Quién es dueño de qué</h2>
+  <table>
+    <thead><tr><th>Frente</th><th>Dueño</th><th>Apoya</th><th>Compromiso semanal</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Nicho, oferta y precio</td><td>Jorge · CEO</td><td>Ernesto</td><td>6 h</td></tr>
+      <tr><td class="k">Máquina de referencias</td><td>Jorge · CEO</td><td>Todos los socios</td><td>4 h c/u</td></tr>
+      <tr><td class="k">Expertise visible / LinkedIn</td><td>Ernesto · CPO</td><td>Todos los socios</td><td>2 h c/u</td></tr>
+      <tr><td class="k">Estudio de madurez</td><td>Dante · CAIO</td><td>Alonso</td><td>6 h</td></tr>
+      <tr><td class="k">Eventos y conferencias</td><td>Ernesto · CPO</td><td>Jorge</td><td>4 h</td></tr>
+      <tr><td class="k">Alianzas cloud</td><td>Alonso · CTO</td><td>Jorge</td><td>3 h</td></tr>
+      <tr><td class="k">Entrega y calidad</td><td>Alejandro · COO</td><td>Alonso</td><td>Tiempo completo</td></tr>
+      <tr><td class="k">Métricas y CRM</td><td>Alejandro · COO</td><td>Dante</td><td>2 h</td></tr>
+    </tbody>
+  </table>
+  <p class="src">El compromiso semanal es el costo real del plan. Si los socios no pueden
+  sostener estas horas mientras entregan proyectos, hay que contratar antes — o recortar el alcance.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="eyebrow">Presupuesto</div>
+  <h2>Qué cuesta, en dólares</h2>
+  <table>
+    <thead><tr><th>Concepto</th><th>Fase</th><th>USD/mes</th><th>Una vez</th></tr></thead>
+    <tbody>
+      <tr><td class="k">CRM + datos de contacto</td><td>0–3</td><td>150–400</td><td>—</td></tr>
+      <tr><td class="k">Diseño de casos y ofertas</td><td>0</td><td>—</td><td>1,500–3,000</td></tr>
+      <tr><td class="k">Contenido y edición de video</td><td>1–3</td><td>800–1,500</td><td>—</td></tr>
+      <tr><td class="k">Estudio de madurez (campo + diseño)</td><td>2</td><td>—</td><td>4,000–8,000</td></tr>
+      <tr><td class="k">Evento propio (60–80 asistentes)</td><td>2</td><td>—</td><td>5,000–9,000</td></tr>
+      <tr><td class="k">Conferencias de industria (3)</td><td>2–3</td><td>—</td><td>4,000–7,000</td></tr>
+      <tr><td class="k">Pauta LinkedIn (retargeting del estudio)</td><td>2–3</td><td>1,000–2,500</td><td>—</td></tr>
+      <tr><td class="k">SDR de tiempo completo (México)</td><td>3</td><td>1,800–3,000</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <div class="cards c3" style="margin-top:18px">
+    <div class="card"><h3>Fases 0–1</h3><div class="num grad">~$1.5K</div>
+      <p class="src">USD/mes + ~$3K de arranque</p></div>
+    <div class="card"><h3>Fase 2</h3><div class="num grad">~$3.5K</div>
+      <p class="src">USD/mes + ~$20K de eventos y estudio</p></div>
+    <div class="card hi"><h3>Fase 3</h3><div class="num" style="color:var(--cyan)">~$7K</div>
+      <p class="src">USD/mes con SDR y pauta</p></div>
+  </div>
+  <p class="src">Referencia de Hinge 2026: las firmas de alto crecimiento invierten
+  <strong>12% de su facturación</strong> en marketing; las que no crecen, 5%.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="eyebrow">Cómo sabremos si funciona</div>
+  <h2>Métricas y puntos de decisión</h2>
+  <table>
+    <thead><tr><th>Métrica</th><th>Hoy</th><th>Mes 6</th><th>Mes 18</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Conversaciones calificadas / mes</td><td>?</td><td>12</td><td>40</td></tr>
+      <tr><td class="k">Referencias recibidas / semestre</td><td>?</td><td>9</td><td>24+</td></tr>
+      <tr><td class="k">Ticket promedio</td><td>?</td><td>+50%</td><td>3x</td></tr>
+      <tr><td class="k">Cobertura de pipeline</td><td>?</td><td>4x</td><td>4–5x</td></tr>
+      <tr><td class="k">Origen: referencia o red</td><td>~100%</td><td>70%</td><td>50%</td></tr>
+      <tr><td class="k">Descargas del estudio</td><td>0</td><td>500</td><td>3,000</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box" style="border-color:rgba(0,194,255,.4);background:rgba(0,194,255,.07);margin-top:18px">
+    <p><strong>Punto de decisión, mes 6:</strong> si las referencias recibidas no llegaron
+    a 9 por semestre, el problema no es de canal sino de <em>entrega o posicionamiento</em>.
+    Parar la inversión en Fase 2 y arreglar eso primero.</p></div>
+  <p class="src">Los "hoy" están vacíos a propósito: hay que llenarlos con datos reales
+  de DataRev antes de comprometer presupuesto. Las metas son ilustrativas hasta entonces.</p>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="eyebrow">Riesgos</div>
+  <h2>Qué puede salir mal</h2>
+  <div class="cards c2">
+    <div class="card"><h3 style="color:var(--bad)">Los socios no sostienen las horas</h3>
+      <p>Es el riesgo número uno. Cuando entra un proyecto, marketing es lo primero que
+      se cae. <strong>Mitigación:</strong> bloques en calendario tratados como entregable
+      de cliente, y una sola persona (Ernesto) con autoridad para exigirlos.</p></div>
+    <div class="card"><h3 style="color:var(--bad)">Crecer más rápido de lo que se entrega</h3>
+      <p>10x en ventas sin equipo destruye la reputación — y la reputación <em>es</em>
+      el canal. <strong>Mitigación:</strong> no abrir Fase 3 hasta tener banca de
+      consultores o socios de entrega.</p></div>
+    <div class="card"><h3 style="color:var(--warn)">El nicho elegido es muy chico</h3>
+      <p>Especializarse sube el precio pero reduce el mercado direccionable.
+      <strong>Mitigación:</strong> nicho por <em>problema</em> (gobierno del dato,
+      agentes en operación), no sólo por industria.</p></div>
+    <div class="card"><h3 style="color:var(--warn)">El estudio no levanta muestra</h3>
+      <p>Sin 150–200 respuestas no hay estudio publicable.
+      <strong>Mitigación:</strong> comprometer la muestra vía aliados —cámaras
+      industriales, AWS, universidades— antes de anunciarlo.</p></div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="eyebrow">Los próximos 14 días</div>
+  <h2>Por dónde empezar el lunes</h2>
+  <div class="cards c2">
+    <div class="card hi"><h3>1 · Llenar los números vacíos</h3>
+      <p>Facturación actual, ticket promedio, número de clientes, origen de cada uno.
+      Sin esto, "10x" es una consigna. <span style="color:var(--cyan)">Alejandro · 2 días</span></p></div>
+    <div class="card hi"><h3>2 · Declarar el nicho</h3>
+      <p>Una frase que diga a quién sirven y qué problema resuelven. Someterla a
+      5 clientes potenciales. <span style="color:var(--cyan)">Jorge · 1 semana</span></p></div>
+    <div class="card hi"><h3>3 · Lista de 100 referidores</h3>
+      <p>Ex colegas de Amazon, Google, Santander, Nemak, AB InBev. Empezar refiriendo
+      ustedes primero. <span style="color:var(--cyan)">Todos · 1 semana</span></p></div>
+    <div class="card hi"><h3>4 · Tres casos con cifras</h3>
+      <p>Los proyectos ya están en el deck. Falta convertirlos en casos publicables
+      con números. <span style="color:var(--cyan)">Ernesto · 2 semanas</span></p></div>
+  </div>
+  <p class="lead" style="margin-top:26px;font-size:clamp(15px,1.9vw,21px);color:var(--ink)">
+    Nada de esto cuesta dinero. Cuesta decidir.</p>
+  <div class="foot">DataRev — Data Revolution · Tú lideras la Revolución. Nosotros la hacemos realidad.</div>
+</section>
+
+</div>
+
+<div class="nav">
+  <button onclick="prev()" aria-label="Anterior">←</button>
+  <span class="counter"><span id="cur">1</span> / <span id="tot">15</span></span>
+  <button onclick="next()" aria-label="Siguiente">→</button>
+</div>
+
+<script>
+let i=1;const slides=document.querySelectorAll('.slide');const n=slides.length;
+document.getElementById('tot').textContent=n;
+function show(k){i=Math.min(Math.max(k,1),n);
+  slides.forEach((s,x)=>s.classList.toggle('active',x===i-1));
+  document.getElementById('cur').textContent=i;
+  document.getElementById('prog').style.width=(i/n*100)+'%';
+  slides[i-1].scrollTop=0;}
+function next(){show(i+1)}function prev(){show(i-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next()}
+  if(e.key==='ArrowLeft'){e.preventDefault();prev()}});
+show(1);
+</script>
+</body>
+</html>
