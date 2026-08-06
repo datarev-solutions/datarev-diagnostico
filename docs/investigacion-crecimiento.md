@@ -137,6 +137,108 @@ factores: si el ticket promedio sube 3x (especialización + productización) y e
 número de clientes sube 3.5x (motor de referencias + visibilidad), eso ya es
 10.5x — sin necesidad de un equipo comercial de diez personas.
 
+## 6. Programas de partner cloud: asignación directa de casos
+
+*(Sección añadida el 6-ago-2026 a petición de Dante — el análisis original la
+subestimaba tratándola como una línea de la Fase 3. Es un error: es de los
+pocos canales donde el proveedor **te asigna clientes activamente**.)*
+
+El mecanismo es distinto a todo lo demás de este documento. No es marketing:
+es que AWS, Microsoft y Google tienen vendedores con cuota que necesitan
+socios certificados a quién referir la implementación. Certificarse te pone en
+esa lista.
+
+### AWS — el más accesible para empezar
+
+Requisitos publicados por AWS ([AWS Services Partner Tiers](https://aws.amazon.com/partners/services-tiers/)):
+
+| | Select | Advanced | Premier |
+|---|---|---|---|
+| Cuota anual APN | USD 2,500 | 2,500 | 2,500 |
+| Individuos acreditados | 4 (2 téc + 2 neg) | 8 (4+4) | 20 (10+10) |
+| Certificados fundacionales | 2 | 4 | 10 |
+| Certificados técnicos | 2 | 6 (mín 3 prof/especialidad) | 25 (mín 10) |
+| Oportunidades lanzadas | 3 (MRR ≥ 1,500) | 20 (MRR ≥ 10,000) | 50 (MRR ≥ 50,000) |
+| Competencias AWS | — | — | 3 |
+
+**Lo importante: el tier Select está a semanas de distancia.** Cuatro personas
+acreditadas y cuatro certificaciones, con cinco socios que ya trabajan AWS a
+diario. La barrera real son las 3 oportunidades lanzadas con MRR ≥ USD 1,500.
+
+**ACE (APN Customer Engagements)** es el mecanismo que importa: la plataforma
+de co-venta donde se comparten oportunidades con AWS y — esto es lo clave —
+**se reciben oportunidades originadas por AWS**. La actividad en ACE alimenta
+un *co-sell recommendation score* que determina qué tan visible eres para los
+vendedores de AWS. Desde 2026 la actividad en ACE es además obligatoria para
+renovar especializaciones
+([Labra, guía de programas AWS 2026](https://labra.io/aws-partner-programs-guide/)).
+
+### Microsoft — el de mayor financiamiento
+
+Entrar al Microsoft AI Cloud Partner Program es **gratis y sin mínimo de
+facturación**. La designación se gana con el **Partner Capability Score**:
+70 de 100 puntos, repartidos en desempeño (20), habilidades (40), éxito de
+cliente (20) y crecimiento (20)
+([Microsoft Learn](https://learn.microsoft.com/en-us/partner-center/membership/introduction-to-pcs)).
+La designación relevante es **Solutions Partner for Data & AI (Azure)**.
+
+Que 40 de los 100 puntos vengan de *skilling* es la buena noticia: es la
+categoría que depende sólo de que el equipo presente exámenes, no de tener
+clientes todavía.
+
+Costos: exámenes de certificación USD 165–330 cada uno; auditorías de
+Advanced Specialization USD 2,400–3,600. Plazo típico: 3–6 meses con clientes
+y personal certificado; 6–12 meses desde cero.
+
+Del lado del dinero existen PEC (15% del consumo de Azure gestionado), ECIF
+(financiamiento por trato, USD 10K–100K+, requiere Advanced Specialization) y
+Azure Accelerate (USD 5K–175K por engagement).
+
+> **Advertencia sobre estas cifras de financiamiento**: vienen de
+> aicloudpartners.com, que *vende consultoría para capturar esos incentivos* —
+> conflicto de interés directo. Los hechos estructurales (PCS 70/100, costo de
+> exámenes) sí están corroborados por Microsoft Learn; las promesas de
+> "USD 150K–350K anuales" no las tomen como dadas.
+
+### Google Cloud — el que más refiere en datos e IA
+
+Google **rehizo el programa en Q1 2026**: el Google Cloud Partner Network
+reemplazó a Partner Advantage. Tres tiers (Select, Premier, Diamond) y un
+marco de competencias que sustituye a las especializaciones, midiendo dos
+dimensiones separadas: **capacidad** (certificaciones del equipo) y
+**capability** (resultados cerrados en producción)
+([Google Cloud](https://cloud.google.com/partners)).
+
+El dato más relevante para DataRev: según análisis de practicantes, en Google
+Cloud **la originación del lado del proveedor es proporcionalmente más común
+que en AWS o Microsoft, particularmente en cargas de datos e IA**, porque el
+campo está diseñado para ser más receptivo a socios
+([flashdba, co-sell Google Cloud](https://flashdba.com/hyperscaler-gtm/co-sell/google-cloud/)).
+La misma fuente reporta que Select es alcanzable en ~90 días para quien llega
+con una operación previa de AWS o Microsoft. Es análisis de practicante, no
+documentación oficial — pero es consistente con el rediseño del programa.
+
+### Por qué esto encaja tan bien con DataRev
+
+1. **Ya tienen el stack**: el deck de servicios lista AWS, Azure, Oracle Cloud
+   y Snowflake. No hay que aprender nada nuevo, hay que certificarlo.
+2. **Resuelve el problema del ticket**, que la sección 4 identificó como la
+   restricción real. Los tratos co-vendidos con un hiperescalador son más
+   grandes y traen presupuesto del proveedor (ECIF, Azure Accelerate).
+3. **Es el único canal que ataca el hallazgo del 94%**: estar en el Partner
+   Solutions Finder y en el radar de los vendedores del hiperescalador es
+   literalmente estar en la lista corta antes de que exista el RFP.
+4. **El costo de entrada es bajo**: USD 2,500/año de AWS más exámenes. Un
+   orden de magnitud menos que un evento propio.
+
+### La trampa que hay que evitar
+
+Los tres programas escalan con **oportunidades cerradas**, no con
+certificaciones. Las certificaciones abren la puerta; los tiers altos exigen
+volumen de negocio real (AWS Advanced pide 20 oportunidades con MRR ≥ USD
+10,000). Es un motor de aceleración, no de arranque: **funciona en paralelo a
+las referencias, no en lugar de ellas.**
+
 ## Conclusiones accionables
 
 1. **Dejar de tratar el diagnóstico como motor de demanda.** Es un activo de
@@ -156,6 +258,9 @@ número de clientes sube 3.5x (motor de referencias + visibilidad), eso ya es
    profesionales cierra bien y rápido pero con tickets chicos.
 6. **Eventos propios.** Por primera vez encabezan la lista de impacto en Hinge
    2026, y son baratos comparados con pauta.
+7. **Certificarse como partner de AWS, Microsoft y Google — empezando ya.**
+   Es el único canal donde el proveedor asigna casos activamente. AWS Select
+   está a semanas de distancia y cuesta USD 2,500/año. No es trabajo de Fase 3.
 
 ## Vacíos de la investigación
 
