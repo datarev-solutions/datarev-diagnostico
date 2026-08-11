@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BROCHURE, DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
+import { CALC } from "@/lib/i18nCalc";
 import { useApp } from "./AppProvider";
 import { AccountChip } from "./AccountChip";
 
@@ -104,20 +106,52 @@ export function BrochureLink({ className = "" }: { className?: string }) {
   );
 }
 
-export function Header() {
+/** Top-level sections. Underlined when the route is active. */
+function Nav() {
   const { t } = useApp();
+  const pathname = usePathname();
 
+  const tabs = [
+    { href: "/", label: t(UI.appName), match: (p: string) => p === "/" || p.startsWith("/assessment") || p.startsWith("/results") },
+    { href: "/calculadora", label: t(CALC.navLabel), match: (p: string) => p.startsWith("/calculadora") },
+  ];
+
+  return (
+    <nav className="hidden items-center gap-1 sm:flex">
+      {tabs.map((tab) => {
+        const active = tab.match(pathname);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            aria-current={active ? "page" : undefined}
+            className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition ${
+              active
+                ? "bg-[var(--surface-2)] text-[var(--text-primary)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function Header() {
   return (
     <header className="no-print sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-0)]/85 backdrop-blur">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between gap-4 px-5">
-        <Link href="/" className="flex items-center gap-3">
-          <DataRevLogo className="h-12" />
-          <span className="hidden border-l border-[var(--border)] pl-3 text-[13px] font-medium text-[var(--text-secondary)] sm:inline">
-            {t(UI.appName)}
-          </span>
-        </Link>
         <div className="flex items-center gap-3">
-          <BrochureLink className="hidden md:inline-flex" />
+          <Link href="/">
+            <DataRevLogo className="h-12" />
+          </Link>
+          <span className="hidden h-6 w-px bg-[var(--border)] sm:block" />
+          <Nav />
+        </div>
+        <div className="flex items-center gap-3">
+          <BrochureLink className="hidden lg:inline-flex" />
           <AccountChip />
           <LanguageToggle />
         </div>
