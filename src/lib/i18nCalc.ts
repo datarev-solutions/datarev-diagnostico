@@ -80,6 +80,34 @@ export const CALC = {
   },
   sources_: { es: "Fuentes de las tarifas", en: "Rate sources" },
 
+  // Portable engines
+  enginesTitle: { es: "Motores portables: Snowflake y Databricks", en: "Portable engines: Snowflake and Databricks" },
+  enginesLead: {
+    es: "Ninguno de los dos es una nube. Son motores que corren encima de AWS, GCP o Azure, así que se comparan como reemplazo del motor nativo — no como una quinta columna. El object storage, la orquestación y las licencias de BI siguen corriendo por cuenta de la nube anfitriona.",
+    en: "Neither is a cloud. They are engines that run on top of AWS, GCP or Azure, so they compare as a swap for the native engine — not as a fifth column. Object storage, orchestration and BI licences still land on the host cloud's bill.",
+  },
+  host: { es: "Nube anfitriona", en: "Host cloud" },
+  engineCost: { es: "Motor", en: "Engine" },
+  hostCost: { es: "Nube anfitriona", en: "Host cloud" },
+  enginesFootnote: {
+    es: "Se comparan sólo las capas de motor y plataforma. Licencias de BI y operación no cambian al cambiar de motor, así que incluirlas sólo emborronaría la comparación.",
+    en: "Only the engine and platform layers are compared. BI licences and operations do not change with the engine, so including them would only blur the comparison.",
+  },
+  nativeBadge: { es: "Nativo", en: "Native" },
+
+  // Migration
+  migrationTitle: { es: "Costo de migración, una sola vez", en: "One-time migration cost" },
+  migrationLead: {
+    es: "Lo anterior es la corrida mensual. Llegar ahí cuesta aparte, y suele ser la cifra que más pesa en la decisión.",
+    en: "Everything above is the monthly run rate. Getting there costs extra, and it is usually the number that decides the deal.",
+  },
+  migrationDays: { es: "días de consultoría", en: "consulting days" },
+  migrationRate: { es: "Tarifa por día", en: "Day rate" },
+  migrationRange: {
+    es: "Se expresa como rango a propósito: una cifra puntual para un trabajo de migración siempre sale mal.",
+    en: "Deliberately a range: a point estimate for migration work is always wrong.",
+  },
+
   ctaTitle: { es: "¿Quieres el número real?", en: "Want the real number?" },
   ctaLead: {
     es: "En una sesión medimos tu carga actual y convertimos esta estimación en un costeo defendible, con la arquitectura que le corresponde.",

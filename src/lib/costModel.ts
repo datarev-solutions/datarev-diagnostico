@@ -1,4 +1,13 @@
-import { AWS, AZURE, GCP, OPS_HOURS, OSS } from "./cloudPricing";
+import {
+  AWS,
+  AZURE,
+  DATABRICKS,
+  GCP,
+  MIGRATION,
+  OPS_HOURS,
+  OSS,
+  SNOWFLAKE,
+} from "./cloudPricing";
 import type { L } from "./framework";
 
 export type StackId = "oss" | "gcp" | "aws" | "azure";
@@ -520,4 +529,285 @@ export function estimateAll(input: CostInputs, dataGb = input.dataGb): StackCost
     awsCost(input, dataGb),
     azureCost(input, dataGb),
   ];
+}
+
+/* ------------------------------------------- portable engines (layer) */
+
+export type HostCloud = "gcp" | "aws" | "azure";
+export type EngineId = "native" | "snowflake" | "databricks";
+
+export interface EngineCost {
+  id: EngineId;
+  name: string;
+  /** What the engine itself charges: compute plus its own storage. */
+  engineUsd: number;
+  /** What the host cloud still charges underneath it. */
+  hostUsd: number;
+  total: number;
+  lines: CostLine[];
+  note: L;
+}
+
+const HOST_LABEL: Record<HostCloud, string> = {
+  gcp: "Google Cloud",
+  aws: "AWS",
+  azure: "Microsoft Azure",
+};
+
+const HOST_OBJECT_RATE: Record<HostCloud, number> = {
+  gcp: GCP.objectStorage,
+  aws: AWS.objectStorage,
+  azure: AZURE.storage,
+};
+
+const HOST_ORCHESTRATION: Record<HostCloud, number> = {
+  gcp: GCP.orchestrationMonthly,
+  aws: AWS.orchestrationMonthly,
+  // Fabric's own capacity covers orchestration; an F2 is the realistic floor.
+  azure: AZURE.fabricSkus[0].monthly,
+};
+
+/** Hours the warehouse is awake, by cadence. Shared by both engines. */
+function awakeHours(refresh: Refresh): number {
+  return refresh === "daily" ? 60 : refresh === "hourly" ? 200 : 730;
+}
+
+/** Snowflake warehouse size, snapped to the doubling ladder. */
+export function sizeSnowflakeWarehouse(dataGb: number, concurrency: number) {
+  const needed = 1 + dataGb / 2000 + concurrency / 12;
+  return (
+    SNOWFLAKE.warehouseSizes.find((w) => w.creditsPerHour >= needed) ??
+    SNOWFLAKE.warehouseSizes[SNOWFLAKE.warehouseSizes.length - 1]
+  );
+}
+
+function snowflakeEngine(input: CostInputs, dataGb: number, host: HostCloud): EngineCost {
+  const queryTib = input.queryGbPerMonth / 1024;
+  const concurrency = input.analysts + input.creators + input.viewers / 10;
+  const warehouse = sizeSnowflakeWarehouse(dataGb, concurrency);
+  const hours = awakeHours(input.refresh);
+
+  const credits = warehouse.creditsPerHour * hours + queryTib * SNOWFLAKE.creditsPerTibScanned;
+  const compute = credits * SNOWFLAKE.creditEnterprise;
+  const storage = (dataGb / 1024) * SNOWFLAKE.storagePerTb;
+
+  // Raw landing zone stays on the host; Snowflake holds the modelled copy.
+  const hostStorage = dataGb * 0.4 * HOST_OBJECT_RATE[host];
+  const orchestration = HOST_ORCHESTRATION[host];
+
+  const lines: CostLine[] = [
+    {
+      key: "compute",
+      label: { es: "Cómputo Snowflake", en: "Snowflake compute" },
+      usd: round(compute),
+      detail: {
+        es: `Warehouse ${warehouse.name} · ${Math.round(credits)} créditos × $${SNOWFLAKE.creditEnterprise} (Enterprise)`,
+        en: `${warehouse.name} warehouse · ${Math.round(credits)} credits × $${SNOWFLAKE.creditEnterprise} (Enterprise)`,
+      },
+    },
+    {
+      key: "storage",
+      label: { es: "Almacenamiento Snowflake", en: "Snowflake storage" },
+      usd: round(storage),
+      detail: {
+        es: `${(dataGb / 1024).toFixed(1)} TB × $${SNOWFLAKE.storagePerTb} (tarifa de capacidad)`,
+        en: `${(dataGb / 1024).toFixed(1)} TB × $${SNOWFLAKE.storagePerTb} (capacity rate)`,
+      },
+    },
+    {
+      key: "hostStorage",
+      label: { es: `Object storage en ${HOST_LABEL[host]}`, en: `Object storage on ${HOST_LABEL[host]}` },
+      usd: round(hostStorage),
+    },
+    {
+      key: "orchestration",
+      label: { es: "Orquestación en la nube anfitriona", en: "Orchestration on the host cloud" },
+      usd: round(orchestration),
+    },
+  ];
+
+  return {
+    id: "snowflake",
+    name: "Snowflake",
+    engineUsd: round(compute + storage),
+    hostUsd: round(hostStorage + orchestration),
+    total: round(compute + storage + hostStorage + orchestration),
+    lines,
+    note: {
+      es: "Cobra por segundo mientras el warehouse está encendido, no por dato leído. El auto-suspend es la palanca: bajarlo de 10 a 1 minuto suele recortar la factura sin que nadie lo note.",
+      en: "Bills per second while the warehouse is awake, not per byte read. Auto-suspend is the lever: dropping it from 10 minutes to 1 usually cuts the bill without anyone noticing.",
+    },
+  };
+}
+
+/**
+ * Databricks SQL warehouse size, snapped to the published ladder.
+ *
+ * The base has to sit below the smallest tier's 4 DBU/hour, or 2X-Small
+ * becomes unreachable and every workload — including a 100 GB one with three
+ * analysts — gets sized up a notch it does not need.
+ */
+export function sizeDatabricksWarehouse(dataGb: number, concurrency: number) {
+  const needed = 2 + dataGb / 500 + concurrency / 3;
+  return (
+    DATABRICKS.sqlWarehouseSizes.find((w) => w.dbuPerHour >= needed) ??
+    DATABRICKS.sqlWarehouseSizes[DATABRICKS.sqlWarehouseSizes.length - 1]
+  );
+}
+
+function databricksEngine(input: CostInputs, dataGb: number, host: HostCloud): EngineCost {
+  const queryTib = input.queryGbPerMonth / 1024;
+  const ingestTb = ingestGbPerMonth(input) / 1024;
+  const concurrency = input.analysts + input.creators + input.viewers / 10;
+  const hours = awakeHours(input.refresh);
+
+  // The warehouse costs its size for every hour it is awake, plus a marginal
+  // amount for what it actually scans. Pricing only the marginal part is the
+  // classic way these estimates come out 100x too low.
+  const warehouse = sizeDatabricksWarehouse(dataGb, concurrency);
+  const sqlDbus = warehouse.dbuPerHour * hours + queryTib * DATABRICKS.dbuPerTibScanned;
+  const sqlCost = sqlDbus * DATABRICKS.sqlServerlessDbu;
+
+  // Scheduled ETL on jobs compute, the cheapest DBU tier. Small pipelines are
+  // bound by the per-run minimum rather than by data volume.
+  const runs = runsPerMonth(input.refresh);
+  const jobDbus = Math.max(
+    ingestTb * DATABRICKS.dbuPerTbProcessed,
+    runs * DATABRICKS.minJobDbuPerRun,
+  );
+  const jobCost = jobDbus * DATABRICKS.jobsDbu;
+
+  // Delta tables live directly on the host's object storage — no separate
+  // storage markup, which is the structural difference against Snowflake.
+  const hostStorage = dataGb * HOST_OBJECT_RATE[host];
+  const orchestration = HOST_ORCHESTRATION[host];
+
+  const lines: CostLine[] = [
+    {
+      key: "sql",
+      label: { es: "Databricks SQL Serverless", en: "Databricks SQL Serverless" },
+      usd: round(sqlCost),
+      detail: {
+        es: `Warehouse ${warehouse.name} · ${Math.round(sqlDbus)} DBU × $${DATABRICKS.sqlServerlessDbu} · incluye el cómputo subyacente`,
+        en: `${warehouse.name} warehouse · ${Math.round(sqlDbus)} DBU × $${DATABRICKS.sqlServerlessDbu} · underlying compute included`,
+      },
+    },
+    {
+      key: "jobs",
+      label: { es: "Jobs Compute (ETL)", en: "Jobs Compute (ETL)" },
+      usd: round(jobCost),
+      detail: {
+        es: `${Math.round(jobDbus)} DBU × $${DATABRICKS.jobsDbu} · 3-4× más barato que un cluster interactivo`,
+        en: `${Math.round(jobDbus)} DBU × $${DATABRICKS.jobsDbu} · 3-4× cheaper than an interactive cluster`,
+      },
+    },
+    {
+      key: "hostStorage",
+      label: { es: `Delta Lake sobre ${HOST_LABEL[host]}`, en: `Delta Lake on ${HOST_LABEL[host]}` },
+      usd: round(hostStorage),
+      detail: {
+        es: "Sin sobreprecio de almacenamiento: los datos viven en tu propio object storage",
+        en: "No storage markup: the data lives in your own object storage",
+      },
+    },
+    {
+      key: "orchestration",
+      label: { es: "Orquestación en la nube anfitriona", en: "Orchestration on the host cloud" },
+      usd: round(orchestration),
+    },
+  ];
+
+  return {
+    id: "databricks",
+    name: "Databricks",
+    engineUsd: round(sqlCost + jobCost),
+    hostUsd: round(hostStorage + orchestration),
+    total: round(sqlCost + jobCost + hostStorage + orchestration),
+    lines,
+    note: {
+      es: "El error caro aquí es correr pipelines de producción en clusters interactivos: son 3-4× el costo por el mismo trabajo. En AWS y GCP además llegan dos facturas, la de Databricks y la de la nube.",
+      en: "The expensive mistake here is running production pipelines on interactive clusters: 3-4× the cost for the same work. On AWS and GCP you also get two invoices, one from Databricks and one from the cloud.",
+    },
+  };
+}
+
+/** The host's own engine, pulled from the full stack estimate for comparison. */
+function nativeEngine(input: CostInputs, dataGb: number, host: HostCloud): EngineCost {
+  const stack = estimateAll(input, dataGb).find((s) => s.id === host)!;
+  // Licences and ops are identical across engines, so compare platform only.
+  const lines = stack.groups.platform;
+  const total = stack.platform;
+
+  const names: Record<HostCloud, string> = {
+    gcp: "BigQuery",
+    aws: "Redshift",
+    azure: "Fabric",
+  };
+
+  return {
+    id: "native",
+    name: names[host],
+    engineUsd: total,
+    hostUsd: 0,
+    total,
+    lines,
+    note: {
+      es: "El motor nativo de la nube anfitriona. Integración más simple y una sola factura, a cambio de quedar amarrado a ese proveedor.",
+      en: "The host cloud's own engine. Simpler integration and a single invoice, at the price of being tied to that vendor.",
+    },
+  };
+}
+
+/**
+ * The same workload on one host cloud, with three interchangeable engines.
+ * Licences and operations are excluded on purpose: they do not change with
+ * the engine, so including them would only blur the comparison.
+ */
+export function estimateEngines(
+  input: CostInputs,
+  dataGb: number,
+  host: HostCloud,
+): EngineCost[] {
+  return [
+    nativeEngine(input, dataGb, host),
+    snowflakeEngine(input, dataGb, host),
+    databricksEngine(input, dataGb, host),
+  ];
+}
+
+/* --------------------------------------------------------- migration */
+
+export interface MigrationEstimate {
+  days: number;
+  low: number;
+  high: number;
+  lines: { label: L; days: number }[];
+}
+
+/**
+ * One-time cost to land on any of these platforms. Quoted as a range because
+ * a point estimate for migration work is always wrong.
+ */
+export function estimateMigration(input: CostInputs, dayRate: number): MigrationEstimate {
+  const volumeDays = Math.min(
+    MIGRATION.maxVolumeDays,
+    (input.dataGb / 1024) * MIGRATION.volumeDaysPerTb,
+  );
+  const sourceDays = input.sources * MIGRATION.perSourceDays;
+  const reportDays = input.analysts * MIGRATION.perAnalystDays;
+
+  const lines = [
+    { label: { es: "Descubrimiento y arquitectura", en: "Discovery and architecture" }, days: MIGRATION.discoveryDays },
+    { label: { es: `Integrar ${input.sources} fuentes`, en: `Integrate ${input.sources} sources` }, days: round(sourceDays) },
+    { label: { es: "Backfill histórico y conciliación", en: "History backfill and reconciliation" }, days: round(volumeDays) },
+    { label: { es: "Reconstruir reportes y capa semántica", en: "Rebuild reports and semantic layer" }, days: round(reportDays) },
+  ];
+
+  const days = round(lines.reduce((a, l) => a + l.days, 0));
+  return {
+    days,
+    low: Math.round(days * dayRate * 0.8),
+    high: Math.round(days * dayRate * 1.4),
+    lines,
+  };
 }

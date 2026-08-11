@@ -3,9 +3,13 @@ import { AZURE } from "./cloudPricing";
 import {
   DEFAULT_INPUTS,
   estimateAll,
+  estimateEngines,
+  estimateMigration,
   ingestGbPerMonth,
   projectDataGb,
   sizeFabricCu,
+  sizeDatabricksWarehouse,
+  sizeSnowflakeWarehouse,
   type CostInputs,
 } from "./costModel";
 
@@ -116,6 +120,106 @@ describe("the Fabric F64 licensing cliff", () => {
 
       expect(capacity.usd + azure.licenses).toBeLessThanOrEqual(naive + 0.01);
     }
+  });
+});
+
+describe("portable engines", () => {
+  it("prices three interchangeable engines on the same host", () => {
+    const engines = estimateEngines(DEFAULT_INPUTS, 500, "aws");
+
+    expect(engines.map((e) => e.id)).toEqual(["native", "snowflake", "databricks"]);
+    for (const e of engines) {
+      expect(e.total).toBeCloseTo(e.engineUsd + e.hostUsd, 1);
+      expect(e.total).toBeGreaterThan(0);
+    }
+  });
+
+  it("still charges the host cloud underneath a portable engine", () => {
+    // The whole point of the correction: these are not clouds. Object storage
+    // and orchestration stay on the host's bill either way.
+    for (const host of ["gcp", "aws", "azure"] as const) {
+      const [, snowflake, databricks] = estimateEngines(DEFAULT_INPUTS, 500, host);
+      expect(snowflake.hostUsd).toBeGreaterThan(0);
+      expect(databricks.hostUsd).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives Databricks no storage markup and Snowflake one", () => {
+    // Delta tables sit on the customer's own object storage; Snowflake keeps
+    // its own copy at $23/TB. That gap widens with volume.
+    const engineStorage = (id: "snowflake" | "databricks", dataGb: number) => {
+      const e = estimateEngines(DEFAULT_INPUTS, dataGb, "aws").find((x) => x.id === id)!;
+      return e.lines.find((l) => l.key === "storage")?.usd ?? 0;
+    };
+
+    expect(engineStorage("snowflake", 10_000)).toBeGreaterThan(0);
+    expect(engineStorage("databricks", 10_000)).toBe(0);
+  });
+
+  it("steps the Snowflake warehouse up the doubling ladder", () => {
+    const small = sizeSnowflakeWarehouse(100, 5);
+    const big = sizeSnowflakeWarehouse(50_000, 400);
+
+    expect(big.creditsPerHour).toBeGreaterThan(small.creditsPerHour);
+    // Every size on the ladder is a power of two.
+    expect(Math.log2(big.creditsPerHour) % 1).toBe(0);
+  });
+
+  it("charges Databricks for keeping a warehouse awake, not just for bytes scanned", () => {
+    // Regression guard. Pricing only marginal per-TiB consumption put a real
+    // BI workload at USD 3/month, which is off by two orders of magnitude:
+    // a 2X-Small serverless warehouse is 4 DBU/hour whenever it is awake.
+    const engine = estimateEngines(withInputs({ queryGbPerMonth: 200 }), 200, "aws").find(
+      (e) => e.id === "databricks",
+    )!;
+    const sql = engine.lines.find((l) => l.key === "sql")!;
+    const jobs = engine.lines.find((l) => l.key === "jobs")!;
+
+    // 4 DBU/h × 60 awake hours × $0.70 = $168 floor, before any scanning.
+    expect(sql.usd).toBeGreaterThan(150);
+    // A pipeline that runs at all costs something.
+    expect(jobs.usd).toBeGreaterThan(0);
+  });
+
+  it("steps the Databricks warehouse up with volume and concurrency", () => {
+    const small = sizeDatabricksWarehouse(100, 3);
+    const big = sizeDatabricksWarehouse(20_000, 300);
+
+    expect(small.dbuPerHour).toBe(4);
+    expect(big.dbuPerHour).toBeGreaterThan(small.dbuPerHour);
+  });
+
+  it("scales Snowflake compute with how long the warehouse stays awake", () => {
+    const compute = (refresh: "daily" | "realtime") =>
+      estimateEngines(withInputs({ refresh }), 500, "aws")
+        .find((e) => e.id === "snowflake")!
+        .lines.find((l) => l.key === "compute")!.usd;
+
+    // Per-second billing while awake means cadence, not data, drives the bill.
+    expect(compute("realtime")).toBeGreaterThan(compute("daily") * 5);
+  });
+});
+
+describe("migration estimate", () => {
+  it("returns a range, never a point estimate", () => {
+    const m = estimateMigration(DEFAULT_INPUTS, 900);
+
+    expect(m.low).toBeLessThan(m.high);
+    expect(m.days).toBeCloseTo(
+      m.lines.reduce((a, l) => a + l.days, 0),
+      1,
+    );
+  });
+
+  it("grows with sources and analysts, and caps the volume component", () => {
+    const few = estimateMigration(withInputs({ sources: 2 }), 900);
+    const many = estimateMigration(withInputs({ sources: 20 }), 900);
+    expect(many.days).toBeGreaterThan(few.days);
+
+    // Backfill effort flattens out — a 500 TB migration is not 50x a 10 TB one.
+    const huge = estimateMigration(withInputs({ dataGb: 500_000 }), 900);
+    const backfill = huge.lines.find((l) => l.label.en.includes("backfill"))!;
+    expect(backfill.days).toBeLessThanOrEqual(30);
   });
 });
 

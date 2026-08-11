@@ -4,16 +4,25 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
-import { PRICING_CHECKED, PRICING_SOURCES, REGION_NOTE } from "@/lib/cloudPricing";
+import { MIGRATION, PRICING_CHECKED, PRICING_SOURCES, REGION_NOTE } from "@/lib/cloudPricing";
 import {
   DEFAULT_INPUTS,
   estimateAll,
+  estimateEngines,
+  estimateMigration,
   projectDataGb,
   type CostInputs,
+  type HostCloud,
   type Refresh,
   type StackCost,
 } from "@/lib/costModel";
 import { CALC } from "@/lib/i18nCalc";
+
+const HOST_LABELS: Record<HostCloud, string> = {
+  gcp: "GCP",
+  aws: "AWS",
+  azure: "Azure",
+};
 
 /** Stacked-bar series. Same validated trio the report charts use. */
 const LAYER = {
@@ -284,6 +293,10 @@ export default function CalculatorPage() {
   const [input, setInput] = useState<CostInputs>(DEFAULT_INPUTS);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
+  const [host, setHost] = useState<HostCloud>("aws");
+  // Explicit number: MIGRATION is `as const`, so the literal 900 would
+  // otherwise narrow the state type and reject any other rate.
+  const [dayRate, setDayRate] = useState<number>(MIGRATION.defaultDayRate);
 
   const set = <K extends keyof CostInputs>(key: K, value: CostInputs[K]) =>
     setInput((current) => ({ ...current, [key]: value }));
@@ -296,6 +309,12 @@ export default function CalculatorPage() {
     () => stacks.reduce((a, b) => (b.total < a.total ? b : a)).id,
     [stacks],
   );
+  const engines = useMemo(() => estimateEngines(input, dataGb, host), [input, dataGb, host]);
+  const cheapestEngine = useMemo(
+    () => engines.reduce((a, b) => (b.total < a.total ? b : a)).id,
+    [engines],
+  );
+  const migration = useMemo(() => estimateMigration(input, dayRate), [input, dayRate]);
 
   const refreshOptions: { id: Refresh; label: string }[] = [
     { id: "daily", label: t(CALC.refreshDaily) },
@@ -530,6 +549,153 @@ export default function CalculatorPage() {
           </ul>
           <div className="mt-4">
             <CompareChart stacks={stacks} locale={locale} t={t} />
+          </div>
+        </section>
+
+        {/* Portable engines */}
+        <section className="card card-lit avoid-break mt-6 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <h2 className="text-[15px] font-semibold tracking-tight">{t(CALC.enginesTitle)}</h2>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                {t(CALC.enginesLead)}
+              </p>
+            </div>
+            <div className="no-print shrink-0">
+              <span className="mb-1.5 block text-[11px] font-medium text-[var(--text-muted)]">
+                {t(CALC.host)}
+              </span>
+              <div className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-0.5">
+                {(["gcp", "aws", "azure"] as const).map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setHost(h)}
+                    className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
+                      host === h
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {HOST_LABELS[h]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {engines.map((e) => (
+              <div
+                key={e.id}
+                className={`rounded-xl border p-4 ${
+                  e.id === cheapestEngine
+                    ? "border-[var(--cyan)] bg-[var(--surface-2)]"
+                    : "border-[var(--border)] bg-[var(--surface-1)]"
+                }`}
+              >
+                <div className="flex h-5 items-center justify-between gap-2">
+                  <h3 className="text-[13.5px] font-semibold">{e.name}</h3>
+                  {e.id === "native" ? (
+                    <span className="rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                      {t(CALC.nativeBadge)}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="tnum mt-3 text-[21px] font-bold leading-none tracking-tight">
+                  {usd(e.total, locale)}
+                </p>
+                <p className="mt-1 text-[10.5px] text-[var(--text-muted)]">{t(CALC.perMonth)}</p>
+
+                {e.hostUsd > 0 ? (
+                  <p className="mt-2 text-[11px] text-[var(--text-secondary)]">
+                    {t(CALC.engineCost)} {usd(e.engineUsd, locale)} ·{" "}
+                    {t(CALC.hostCost)} {usd(e.hostUsd, locale)}
+                  </p>
+                ) : null}
+
+                <ul className="mt-3 space-y-1.5 border-t border-[var(--border)] pt-3">
+                  {e.lines.map((line) => (
+                    <li key={line.key}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-[11px] text-[var(--text-secondary)]">
+                          {t(line.label)}
+                        </span>
+                        <span className="tnum text-[11px] font-medium">{usd(line.usd, locale)}</span>
+                      </div>
+                      {line.detail ? (
+                        <p className="mt-0.5 text-[10px] leading-snug text-[var(--text-muted)]">
+                          {t(line.detail)}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-3 border-t border-[var(--border)] pt-3 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  {t(e.note)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-[11px] leading-relaxed text-[var(--text-muted)]">
+            {t(CALC.enginesFootnote)}
+          </p>
+        </section>
+
+        {/* Migration */}
+        <section className="card card-lit avoid-break mt-6 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <h2 className="text-[15px] font-semibold tracking-tight">{t(CALC.migrationTitle)}</h2>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                {t(CALC.migrationLead)}
+              </p>
+            </div>
+            <div className="no-print flex items-center gap-2">
+              <span className="text-[11.5px] text-[var(--text-muted)]">{t(CALC.migrationRate)}</span>
+              <input
+                type="number"
+                min={100}
+                max={5000}
+                step={50}
+                value={dayRate}
+                onChange={(e) => setDayRate(Number(e.target.value) || 0)}
+                className="tnum w-24 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-2 py-1 text-[12.5px]"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-6 md:grid-cols-[1fr_auto]">
+            <ul className="space-y-2">
+              {migration.lines.map((line) => (
+                <li
+                  key={line.label.en}
+                  className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-2 text-[12.5px]"
+                >
+                  <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
+                  <span className="tnum whitespace-nowrap font-medium">
+                    {line.days.toLocaleString(locale === "es" ? "es-MX" : "en-US", {
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    d
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="md:w-64">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {Math.round(migration.days)} {t(CALC.migrationDays)}
+              </p>
+              <p className="tnum mt-2 text-[22px] font-bold leading-tight tracking-tight">
+                {usd(migration.low, locale)} – {usd(migration.high, locale)}
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {t(CALC.migrationRange)}
+              </p>
+            </div>
           </div>
         </section>
 

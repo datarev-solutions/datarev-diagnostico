@@ -129,6 +129,93 @@ export const OSS = {
   postgresCeilingGb: 500,
 } as const;
 
+/* --------------------------------------------- PORTABLE DATA ENGINES */
+
+/**
+ * Snowflake and Databricks are NOT clouds. They are engines that run on top
+ * of AWS, GCP or Azure, so they are priced as a swap for the host's native
+ * warehouse — the object storage, orchestration and BI licences underneath
+ * stay exactly where they were.
+ */
+export const SNOWFLAKE = {
+  /** Per credit, AWS us-east-1. Standard 2.00, Business Critical 4.00. */
+  creditEnterprise: 3.0,
+  creditStandard: 2.0,
+  /** Per TB-month, capacity (pre-purchase) rate. On-demand is ~$40. */
+  storagePerTb: 23,
+  /**
+   * Credits per hour by warehouse size. Each step doubles both the compute
+   * and the bill, which is why right-sizing matters more here than anywhere.
+   */
+  warehouseSizes: [
+    { name: "XS", creditsPerHour: 1 },
+    { name: "S", creditsPerHour: 2 },
+    { name: "M", creditsPerHour: 4 },
+    { name: "L", creditsPerHour: 8 },
+    { name: "XL", creditsPerHour: 16 },
+    { name: "2XL", creditsPerHour: 32 },
+  ] as const,
+  /**
+   * Rough credits burned scanning 1 TiB. An order-of-magnitude figure, not a
+   * published rate — Snowflake does not bill per byte scanned.
+   */
+  creditsPerTibScanned: 1.5,
+} as const;
+
+export const DATABRICKS = {
+  /** SQL Serverless — the rate already includes the underlying VM. */
+  sqlServerlessDbu: 0.7,
+  /** SQL Classic — cheaper per DBU, but you also pay the cloud for VMs. */
+  sqlClassicDbu: 0.22,
+  /** Jobs Compute (classic) for scheduled ETL. */
+  jobsDbu: 0.15,
+  /** All-purpose interactive clusters — 3-4x jobs compute for the same work. */
+  allPurposeDbu: 0.55,
+  /**
+   * SQL warehouse sizes, in DBU per hour. There is no smaller unit than
+   * 2X-Small: a warehouse that is awake costs this much whether one analyst
+   * or thirty are querying it. Modelling only marginal per-TiB consumption
+   * understates a real Databricks bill by orders of magnitude.
+   */
+  sqlWarehouseSizes: [
+    { name: "2X-Small", dbuPerHour: 4 },
+    { name: "X-Small", dbuPerHour: 6 },
+    { name: "Small", dbuPerHour: 12 },
+    { name: "Medium", dbuPerHour: 24 },
+    { name: "Large", dbuPerHour: 40 },
+    { name: "X-Large", dbuPerHour: 80 },
+  ] as const,
+  /** Extra DBUs on top of the awake warehouse, per TiB actually scanned. */
+  dbuPerTibScanned: 2.2,
+  /** Rough DBUs to process 1 TB through a jobs cluster. */
+  dbuPerTbProcessed: 12,
+  /**
+   * A jobs cluster has a minimum viable size too — a driver plus a worker,
+   * for at least a few minutes per run. Small pipelines are floor-bound, not
+   * volume-bound.
+   */
+  minJobDbuPerRun: 0.5,
+} as const;
+
+/* ------------------------------------------------------------ MIGRATION */
+
+/**
+ * One-time cost to get onto any of these platforms. Deliberately expressed
+ * in consultant-days rather than a dollar total, because the day rate is the
+ * number DataRev actually negotiates.
+ */
+export const MIGRATION = {
+  discoveryDays: 5,
+  /** Connect, model and validate one source system. */
+  perSourceDays: 3,
+  /** Rebuilding existing reports on the new semantic layer. */
+  perAnalystDays: 1.5,
+  /** Extra days as volume grows — history backfill and reconciliation. */
+  volumeDaysPerTb: 0.4,
+  maxVolumeDays: 30,
+  defaultDayRate: 900,
+} as const;
+
 /* ------------------------------------------------------- SHARED / OPS */
 
 /**
