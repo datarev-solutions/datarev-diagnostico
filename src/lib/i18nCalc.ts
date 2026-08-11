@@ -80,6 +80,16 @@ export const CALC = {
   },
   sources_: { es: "Fuentes de las tarifas", en: "Rate sources" },
 
+  provenanceTitle: { es: "De dónde sale cada tarifa", en: "Where each rate comes from" },
+  provenanceLead: {
+    es: "No todas las cifras tienen el mismo respaldo, y conviene saber cuál es cuál antes de defenderlas frente a un cliente.",
+    en: "Not every figure carries the same weight, and it is worth knowing which is which before defending them to a client.",
+  },
+  provOfficial: { es: "Oficial", en: "Official" },
+  provDerived: { es: "Derivada", en: "Derived" },
+  provSecondary: { es: "Secundaria", en: "Secondary" },
+  provEstimate: { es: "Supuesto", en: "Assumption" },
+
   // Portable engines
   enginesTitle: { es: "Motores portables: Snowflake y Databricks", en: "Portable engines: Snowflake and Databricks" },
   enginesLead: {

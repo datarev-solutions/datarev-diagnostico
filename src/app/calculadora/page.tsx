@@ -4,7 +4,14 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
-import { MIGRATION, PRICING_CHECKED, PRICING_SOURCES, REGION_NOTE } from "@/lib/cloudPricing";
+import {
+  MIGRATION,
+  PRICING_CHECKED,
+  PRICING_SOURCES,
+  PROVENANCE,
+  REGION_NOTE,
+  type Provenance,
+} from "@/lib/cloudPricing";
 import {
   DEFAULT_INPUTS,
   estimateAll,
@@ -22,6 +29,20 @@ const HOST_LABELS: Record<HostCloud, string> = {
   gcp: "GCP",
   aws: "AWS",
   azure: "Azure",
+};
+
+/**
+ * Provenance badges. Green for what the vendor publishes, amber for what we
+ * assumed — so nobody has to take the whole rate card on faith.
+ */
+const PROVENANCE_STYLE: Record<
+  Provenance,
+  { bg: string; fg: string; labelKey: "provOfficial" | "provDerived" | "provSecondary" | "provEstimate" }
+> = {
+  official: { bg: "var(--good)", fg: "#04081f", labelKey: "provOfficial" },
+  derived: { bg: "var(--series-1)", fg: "#ffffff", labelKey: "provDerived" },
+  secondary: { bg: "var(--warning)", fg: "#04081f", labelKey: "provSecondary" },
+  estimate: { bg: "var(--surface-3)", fg: "var(--text-secondary)", labelKey: "provEstimate" },
 };
 
 /** Stacked-bar series. Same validated trio the report charts use. */
@@ -708,7 +729,33 @@ export default function CalculatorPage() {
             <li>{t(CALC.caveat3).replace("{date}", PRICING_CHECKED)}</li>
             <li>{t(REGION_NOTE)}</li>
           </ul>
-          <h3 className="mt-5 text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <h3 className="mt-6 text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {t(CALC.provenanceTitle)}
+          </h3>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--text-secondary)]">
+            {t(CALC.provenanceLead)}
+          </p>
+          <ul className="mt-3 space-y-2.5">
+            {PROVENANCE.map((p) => (
+              <li key={p.group.en} className="flex gap-3">
+                <span
+                  className="mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: PROVENANCE_STYLE[p.level].bg,
+                    color: PROVENANCE_STYLE[p.level].fg,
+                  }}
+                >
+                  {t(CALC[PROVENANCE_STYLE[p.level].labelKey])}
+                </span>
+                <span className="text-[11.5px] leading-relaxed">
+                  <span className="font-medium text-[var(--text-primary)]">{t(p.group)}</span>
+                  <span className="text-[var(--text-secondary)]"> — {t(p.detail)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <h3 className="mt-6 text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             {t(CALC.sources_)}
           </h3>
           <ul className="mt-2 grid gap-1 text-[11.5px] sm:grid-cols-2">

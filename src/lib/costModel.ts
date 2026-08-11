@@ -228,7 +228,10 @@ function awsCost(input: CostInputs, dataGb: number): StackCost {
   const glue = glueDpuHours * AWS.gluePerDpuHour;
 
   const authors = input.analysts + input.creators;
-  const bi = authors * AWS.biAuthorPerUser + input.viewers * AWS.biReaderPerUser;
+  // SPICE holds the hot subset in memory; 10 GB per Author is included.
+  const spiceGb = Math.max(0, dataGb * 0.1 - authors * AWS.spiceIncludedGbPerAuthor);
+  const spice = spiceGb * AWS.spicePerGb;
+  const bi = authors * AWS.biAuthorPerUser + input.viewers * AWS.biReaderPerUser + spice;
 
   const platform: CostLine[] = [
     { key: "lake", label: { es: "S3 (data lake)", en: "S3 (data lake)" }, usd: round(lake) },
@@ -272,8 +275,8 @@ function awsCost(input: CostInputs, dataGb: number): StackCost {
       label: { es: "QuickSight", en: "QuickSight" },
       usd: round(bi),
       detail: {
-        es: `${authors} autores · ${input.viewers} lectores`,
-        en: `${authors} authors · ${input.viewers} readers`,
+        es: `${authors} autores · ${input.viewers} lectores${spice > 0 ? ` · SPICE ${Math.round(spiceGb)} GB` : ""}`,
+        en: `${authors} authors · ${input.viewers} readers${spice > 0 ? ` · ${Math.round(spiceGb)} GB SPICE` : ""}`,
       },
     },
   ];

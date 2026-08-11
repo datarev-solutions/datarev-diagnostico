@@ -1,29 +1,111 @@
 /**
  * Rate card for the cost calculator.
  *
- * EVERY rate here carries its source and the date it was checked. This tool
- * gets shown to prospects, so a stale number is a credibility problem, not a
- * rounding error. Re-verify before quoting anything.
+ * This tool gets shown to prospects, so a stale or invented number is a
+ * credibility problem, not a rounding error. Each rate group is tagged in
+ * PROVENANCE below with how solid it actually is — official, derived,
+ * secondary or estimate. Do not flatten that distinction when presenting.
  *
- * Rates checked: 2026-08-06. Region baseline: US East (us-east-1 /
- * us-central1 / East US 2). Mexico regions run 5-20% higher — see REGION_NOTE.
+ * Region baseline: US East (us-east-1 / us-central1 / East US 2). Mexico
+ * regions run 5-20% higher — see REGION_NOTE.
  *
  * Deliberately NOT modelled: egress between clouds, private networking,
  * support plans, reserved-capacity commitments beyond the ones named, and
  * anything negotiated. Those move the number a lot and can't be guessed.
  */
+import type { L } from "./framework";
 
-export const PRICING_CHECKED = "2026-08-06";
+export const PRICING_CHECKED = "2026-08-09";
+
+/**
+ * Provenance. Not every number here carries the same weight, and pretending
+ * otherwise in front of a client is how a calculator loses its credibility.
+ *
+ *   official  — read off the vendor's own pricing page in this pass
+ *   derived   — computed from official figures (the arithmetic is stated)
+ *   secondary — consistent across independent third parties, vendor page
+ *               renders the figure in JavaScript we could not read
+ *   estimate  — DataRev's own assumption, not a published rate
+ */
+export type Provenance = "official" | "derived" | "secondary" | "estimate";
 
 export const PRICING_SOURCES = [
   { label: "BigQuery pricing", url: "https://cloud.google.com/bigquery/pricing" },
   { label: "Amazon Redshift pricing", url: "https://aws.amazon.com/redshift/pricing/" },
+  { label: "Amazon S3 pricing", url: "https://aws.amazon.com/s3/pricing/" },
+  { label: "AWS Glue pricing", url: "https://aws.amazon.com/glue/pricing/" },
+  { label: "Amazon QuickSight pricing", url: "https://aws.amazon.com/quicksight/pricing/" },
   { label: "Microsoft Fabric pricing", url: "https://azure.microsoft.com/en-us/pricing/details/microsoft-fabric/" },
   { label: "Fabric licenses (F64 threshold)", url: "https://learn.microsoft.com/en-us/fabric/enterprise/licenses" },
+  { label: "Power BI pricing", url: "https://www.microsoft.com/en-us/power-platform/products/power-bi/pricing" },
   { label: "Snowflake pricing", url: "https://www.snowflake.com/en/pricing-options/" },
+  { label: "Databricks pricing", url: "https://www.databricks.com/product/pricing" },
   { label: "Supabase pricing", url: "https://supabase.com/pricing" },
-  { label: "Tableau pricing", url: "https://www.tableau.com/pricing" },
 ] as const;
+
+/**
+ * What is actually verified and what is not, per rate group. Rendered in the
+ * UI so the person presenting can answer "where did that number come from?"
+ * without guessing.
+ */
+export const PROVENANCE: { group: L; level: Provenance; detail: L }[] = [
+  {
+    group: { es: "Capacidad Fabric y umbral F64", en: "Fabric capacity and the F64 threshold" },
+    level: "official",
+    detail: {
+      es: "F2, F4, F64 y F2048 vienen de la página de Azure. Los SKU intermedios (F8 a F256) están derivados: la escalera es exactamente lineal a $131.40 por CU-mes, comprobado contra los cuatro puntos publicados. El umbral F64 lo confirma la nota al pie 3 de la página de Power BI.",
+      en: "F2, F4, F64 and F2048 come from the Azure page. The intermediate SKUs (F8 to F256) are derived: the ladder is exactly linear at $131.40 per CU-month, checked against all four published points. The F64 threshold is confirmed by footnote 3 on the Power BI pricing page.",
+    },
+  },
+  {
+    group: { es: "Licencias por usuario", en: "Per-user licences" },
+    level: "official",
+    detail: {
+      es: "Power BI Pro $14 y PPU $24 de microsoft.com. QuickSight Author $24 y Reader $3 de aws.amazon.com.",
+      en: "Power BI Pro $14 and PPU $24 from microsoft.com. QuickSight Author $24 and Reader $3 from aws.amazon.com.",
+    },
+  },
+  {
+    group: { es: "Almacenamiento y ETL en AWS", en: "AWS storage and ETL" },
+    level: "official",
+    detail: {
+      es: "S3 Standard $0.023/GB y Glue $0.44/DPU-hora, ambos de las páginas de AWS. Redshift Managed Storage $0.024/GB de la misma fuente; el $0.375/RPU-hora está derivado del mínimo publicado de $1.50/hora sobre 4 RPU.",
+      en: "S3 Standard $0.023/GB and Glue $0.44/DPU-hour, both from the AWS pages. Redshift Managed Storage $0.024/GB from the same source; the $0.375/RPU-hour is derived from the published $1.50/hour minimum over 4 RPUs.",
+    },
+  },
+  {
+    group: { es: "Créditos Snowflake y DBU Databricks", en: "Snowflake credits and Databricks DBUs" },
+    level: "official",
+    detail: {
+      es: "Créditos de Snowflake ($2/$3/$4) y almacenamiento a $23/TB de snowflake.com. Tarifas base por DBU de databricks.com. El desglose fino de SKU de Databricks SQL ($0.70 serverless) es de un tercero.",
+      en: "Snowflake credits ($2/$3/$4) and $23/TB storage from snowflake.com. Base DBU rates from databricks.com. The fine-grained Databricks SQL SKU breakdown ($0.70 serverless) comes from a third party.",
+    },
+  },
+  {
+    group: { es: "Consulta y almacenamiento en BigQuery", en: "BigQuery query and storage" },
+    level: "secondary",
+    detail: {
+      es: "El slot-hora de $0.06 sí está en la página de Google. El $6.25 por TiB escaneado y el almacenamiento de $0.02/$0.01 por GB no: esa tabla se renderiza en JavaScript. Coinciden tres fuentes independientes, pero conviene confirmarlos antes de cotizar.",
+      en: "The $0.06 slot-hour is on Google's page. The $6.25 per TiB scanned and the $0.02/$0.01 per GB storage are not: that table renders in JavaScript. Three independent sources agree, but confirm before quoting.",
+    },
+  },
+  {
+    group: { es: "Orquestación, VMs y horas de operación", en: "Orchestration, VMs and ops hours" },
+    level: "estimate",
+    detail: {
+      es: "Composer, MWAA, las VMs de la pila abierta y las horas mensuales de operación son supuestos de DataRev, no tarifas publicadas. Son también las líneas que más conviene sustituir por datos reales del cliente.",
+      en: "Composer, MWAA, the open-stack VMs and the monthly ops hours are DataRev assumptions, not published rates. They are also the lines most worth replacing with the client's real figures.",
+    },
+  },
+  {
+    group: { es: "Factores de conversión de carga", en: "Workload conversion factors" },
+    level: "estimate",
+    detail: {
+      es: "Cuántos créditos consume escanear un TiB, cuántos DBU procesa un TB, cuántas horas al mes queda encendido un warehouse, y los días por fuente en la migración. Son órdenes de magnitud razonados, no medidas. Aquí es donde más se mueve el resultado.",
+      en: "Credits per TiB scanned, DBUs per TB processed, hours a warehouse stays awake, and migration days per source. Reasoned orders of magnitude, not measurements. This is where the result moves most.",
+    },
+  },
+];
 
 /* ------------------------------------------------------------------ GCP */
 
@@ -62,12 +144,16 @@ export const AWS = {
   gluePerDpuHour: 0.44,
   /** MWAA small environment, rough monthly floor. */
   orchestrationMonthly: 350,
-  /**
-   * QuickSight Enterprise. These two have been stable for years but are not
-   * on a page we re-verified in this pass — treat as approximate.
-   */
+  /** QuickSight Enterprise, verified on the AWS pricing page. */
   biAuthorPerUser: 24,
   biReaderPerUser: 3,
+  /**
+   * SPICE, the in-memory store nearly every QuickSight deployment uses.
+   * 10 GB is included per Author; beyond that it is billed per GB-month.
+   * Easy to forget and it lands squarely on the licence line.
+   */
+  spicePerGb: 0.38,
+  spiceIncludedGbPerAuthor: 10,
 } as const;
 
 /* ---------------------------------------------------------------- AZURE */
@@ -88,7 +174,8 @@ export const AZURE = {
     { cu: 128, monthly: 16819.2 },
     { cu: 256, monthly: 33638.4 },
   ] as const,
-  reservationDiscount: 0.41,
+  /** Microsoft's own page states 40.5%, not the ~41% the resellers quote. */
+  reservationDiscount: 0.405,
   /** The SKU at which viewers stop needing a paid licence. */
   freeViewerThresholdCu: 64,
   /** OneLake storage, per GB-month. */
