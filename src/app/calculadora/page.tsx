@@ -21,13 +21,18 @@ import {
   estimateEngines,
   estimateMigration,
   projectDataGb,
+  projectTotals,
+  selectedTotals,
   type CostInputs,
   type EngineId,
   type HostCloud,
   type MigrationRates,
+  type ProjectDimension,
   type Refresh,
   type StackCost,
+  type StackId,
 } from "@/lib/costModel";
+import type { L } from "@/lib/framework";
 import { CALC } from "@/lib/i18nCalc";
 
 const HOST_LABELS: Record<HostCloud, string> = {
@@ -39,6 +44,13 @@ const HOST_LABELS: Record<HostCloud, string> = {
 // Two separate rate editors — Migration's technical/process roles, and the
 // AI workstream's roles — both write into the same shared `rates` state, so
 // an edit in either place applies project-wide, not just to that section.
+const DIMENSIONS: { id: ProjectDimension; label: L; hint: L }[] = [
+  { id: "tech", label: CALC.dimTech, hint: CALC.dimTechHint },
+  { id: "people", label: CALC.dimPeople, hint: CALC.dimPeopleHint },
+  { id: "process", label: CALC.dimProcess, hint: CALC.dimProcessHint },
+  { id: "ai", label: CALC.dimAi, hint: CALC.dimAiHint },
+];
+
 const ROLE_ORDER: MigrationRole[] = ["architect", "engineer", "analyst"];
 const AI_ROLE_ORDER: MigrationRole[] = ["mlEngineer", "fde"];
 const ROLE_LABEL_KEY: Record<
@@ -408,6 +420,13 @@ export default function CalculatorPage() {
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
   const [host, setHost] = useState<HostCloud>("aws");
   const [rates, setRates] = useState<MigrationRates>({ ...MIGRATION.dayRates });
+  const [selected, setSelected] = useState<ProjectDimension[]>([
+    "tech",
+    "people",
+    "process",
+    "ai",
+  ]);
+  const [pinnedStack, setPinnedStack] = useState<StackId | null>(null);
 
   const set = <K extends keyof CostInputs>(key: K, value: CostInputs[K]) =>
     setInput((current) => ({ ...current, [key]: value }));
@@ -429,6 +448,21 @@ export default function CalculatorPage() {
   const migration = useMemo(() => estimateMigration(input, rates), [input, rates]);
   const ai = useMemo(() => estimateAi(input, rates), [input, rates]);
 
+  // Defaults to the cheapest stack so the summary shows a number immediately,
+  // but a consultant can pin a specific platform to answer "what if we go
+  // with Azure?" without re-reading the cards.
+  const summaryStack = stacks.find((s) => s.id === (pinnedStack ?? cheapest))!;
+  const totals = useMemo(
+    () => projectTotals(summaryStack, migration, ai),
+    [summaryStack, migration, ai],
+  );
+  const summary = useMemo(() => selectedTotals(totals, selected), [totals, selected]);
+
+  const toggleDimension = (id: ProjectDimension) =>
+    setSelected((current) =>
+      current.includes(id) ? current.filter((d) => d !== id) : [...current, id],
+    );
+
   const refreshOptions: { id: Refresh; label: string }[] = [
     { id: "daily", label: t(CALC.refreshDaily) },
     { id: "hourly", label: t(CALC.refreshHourly) },
@@ -449,32 +483,152 @@ export default function CalculatorPage() {
             {t(CALC.lead)}
           </p>
 
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: t(CALC.dimTech), hint: t(CALC.dimTechHint), color: LAYER.platform },
-              { label: t(CALC.dimPeople), hint: t(CALC.dimPeopleHint), color: LAYER.licenses },
-              { label: t(CALC.dimProcess), hint: t(CALC.dimProcessHint), color: LAYER.ops },
-              { label: t(CALC.dimAi), hint: t(CALC.dimAiHint), color: "var(--cyan)" },
-            ].map((d) => (
-              <li
-                key={d.label}
-                className="flex items-start gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3.5 py-2.5"
-              >
-                <span
-                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: d.color }}
-                  aria-hidden="true"
-                />
-                <span>
-                  <span className="block text-[12.5px] font-semibold text-[var(--text-primary)]">
-                    {d.label}
-                  </span>
-                  <span className="block text-[11px] text-[var(--text-muted)]">{d.hint}</span>
-                </span>
-              </li>
-            ))}
+          {/* Scope switches, not a legend. These deliberately do NOT reuse the
+              chart's categorical colours: those encode platform/licences/ops
+              (a different three-way split), and sharing a palette across two
+              taxonomies made "Procesos" green look like it pointed at the
+              "Operación" bar segment. Here colour encodes selected state only. */}
+          <p className="mt-5 text-[11.5px] text-[var(--text-muted)]">{t(CALC.dimSelectHint)}</p>
+          <ul className="mt-2.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {DIMENSIONS.map((d) => {
+              const on = selected.includes(d.id);
+              return (
+                <li key={d.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleDimension(d.id)}
+                    aria-pressed={on}
+                    className={`flex w-full items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-left transition ${
+                      on
+                        ? "border-[var(--accent)] bg-[var(--surface-2)]"
+                        : "border-[var(--border)] bg-[var(--surface-1)] opacity-55 hover:opacity-80"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border ${
+                        on
+                          ? "border-[var(--accent)] bg-[var(--accent)]"
+                          : "border-[var(--border-strong)]"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {on ? (
+                        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+                          <path
+                            d="M2.5 6.2 4.8 8.5 9.5 3.8"
+                            stroke="#fff"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : null}
+                    </span>
+                    <span>
+                      <span className="block text-[12.5px] font-semibold text-[var(--text-primary)]">
+                        {t(d.label)}
+                      </span>
+                      <span className="block text-[11px] text-[var(--text-muted)]">
+                        {t(d.hint)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </header>
+
+        {/* Project summary — what the selected dimensions add up to */}
+        <section className="card card-lit glow-accent avoid-break mb-8 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-xl">
+              <h2 className="text-[15px] font-semibold tracking-tight">{t(CALC.summaryTitle)}</h2>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                {t(CALC.summaryLead)}
+              </p>
+            </div>
+            <div className="no-print shrink-0">
+              <span className="mb-1.5 block text-[11px] font-medium text-[var(--text-muted)]">
+                {t(CALC.summaryPlatform)}
+              </span>
+              <div className="inline-flex flex-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-0.5">
+                {stacks.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setPinnedStack(s.id)}
+                    className={`rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold transition ${
+                      summaryStack.id === s.id
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {selected.length === 0 ? (
+            <p className="mt-5 text-[13px] text-[var(--text-muted)]">{t(CALC.summaryEmpty)}</p>
+          ) : (
+            <>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                {[
+                  { label: t(CALC.summaryMonthly), value: summary.monthly, hint: null },
+                  { label: t(CALC.summaryOneTime), value: summary.oneTime, hint: null },
+                  {
+                    label: t(CALC.summaryFirstYear),
+                    value: summary.firstYear,
+                    hint: t(CALC.summaryFirstYearHint),
+                  },
+                ].map((m, i) => (
+                  <div
+                    key={m.label}
+                    className={`rounded-xl px-4 py-3.5 ${
+                      i === 2
+                        ? "border border-[var(--cyan)] bg-[var(--surface-2)]"
+                        : "border border-[var(--border)] bg-[var(--surface-1)]"
+                    }`}
+                  >
+                    <p className="text-[11px] font-medium text-[var(--text-muted)]">{m.label}</p>
+                    <p className="tnum mt-1.5 text-[23px] font-bold leading-none tracking-tight">
+                      {usd(m.value, locale)}
+                    </p>
+                    {m.hint ? (
+                      <p className="mt-1.5 text-[10.5px] text-[var(--text-muted)]">{m.hint}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+
+              <ul className="mt-4 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+                {DIMENSIONS.filter((d) => selected.includes(d.id)).map((d) => {
+                  const tot = totals[d.id];
+                  return (
+                    <li
+                      key={d.id}
+                      className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-1.5 text-[12px]"
+                    >
+                      <span className="text-[var(--text-secondary)]">{t(d.label)}</span>
+                      {/* Math.round here matches selectedTotals, so the parts
+                          visibly add up to the totals above. */}
+                      <span className="tnum whitespace-nowrap text-[var(--text-muted)]">
+                        {tot.monthly > 0 ? `${usd(Math.round(tot.monthly), locale)}/mes` : null}
+                        {tot.monthly > 0 && tot.oneTime > 0 ? " · " : null}
+                        {tot.oneTime > 0
+                          ? `${usd(Math.round(tot.oneTime), locale)} ${t(CALC.summaryOnce)}`
+                          : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </section>
 
         {/* Inputs */}
         <section className="card card-lit no-print mb-8 p-6">

@@ -9,6 +9,9 @@ import {
   estimateMigration,
   ingestGbPerMonth,
   projectDataGb,
+  projectTotals,
+  selectedTotals,
+  type ProjectDimension,
   sizeFabricCu,
   sizeDatabricksWarehouse,
   sizeSnowflakeWarehouse,
@@ -382,6 +385,84 @@ describe("AI / agents estimate (the fourth dimension)", () => {
       m.lines.reduce((a, l) => a + l.cost, 0),
       1,
     );
+  });
+});
+
+describe("project totals (the four selectable dimensions)", () => {
+  const build = (input = DEFAULT_INPUTS) => {
+    const stack = estimateAll(input).find((s) => s.id === "gcp")!;
+    const migration = estimateMigration(input);
+    const ai = estimateAi(input);
+    return { stack, migration, ai, totals: projectTotals(stack, migration, ai) };
+  };
+
+  it("accounts for every peso exactly once — nothing lost, nothing double-counted", () => {
+    // The property that makes the chips safe to toggle: the four dimensions
+    // must partition the model's money, not overlap or leave a remainder.
+    // Asserted on projectTotals, at full precision — selectedTotals rounds
+    // for display, which is a separate concern tested below.
+    const { stack, migration, ai, totals } = build();
+    const all: ProjectDimension[] = ["tech", "people", "process", "ai"];
+    const monthly = all.reduce((a, d) => a + totals[d].monthly, 0);
+    const oneTime = all.reduce((a, d) => a + totals[d].oneTime, 0);
+
+    expect(monthly).toBeCloseTo(stack.total, 1);
+    expect(oneTime).toBeCloseTo(round2(migration.cost + ai.cost), 1);
+  });
+
+  it("puts people on both sides — they cost money to build and to run", () => {
+    const { totals } = build();
+    expect(totals.people.monthly).toBeGreaterThan(0);
+    expect(totals.people.oneTime).toBeGreaterThan(0);
+
+    // The other three sit on exactly one side.
+    expect(totals.tech.oneTime).toBe(0);
+    expect(totals.process.monthly).toBe(0);
+    expect(totals.ai.monthly).toBe(0);
+  });
+
+  it("drops a dimension's cost entirely when it is deselected", () => {
+    const { totals } = build();
+    const withAi = selectedTotals(totals, ["tech", "people", "process", "ai"]);
+    const withoutAi = selectedTotals(totals, ["tech", "people", "process"]);
+
+    expect(withAi.oneTime - withoutAi.oneTime).toBeCloseTo(totals.ai.oneTime, 1);
+    expect(withAi.monthly).toBeCloseTo(withoutAi.monthly, 1);
+  });
+
+  it("returns zero for an empty selection rather than NaN", () => {
+    const { totals } = build();
+    const none = selectedTotals(totals, []);
+    expect(none).toEqual({ monthly: 0, oneTime: 0, firstYear: 0 });
+  });
+
+  it("computes first-year as one-time plus twelve months", () => {
+    const { totals } = build();
+    const t = selectedTotals(totals, ["tech", "people"]);
+    expect(t.firstYear).toBeCloseTo(round2(t.oneTime + t.monthly * 12), 1);
+  });
+
+  it("adds up exactly in whole dollars, the way a client checks it by hand", () => {
+    // Regression: hidden cents in the monthly figure, multiplied by 12, put
+    // first-year 6 dollars above what the displayed monthly predicts. All
+    // three headline figures must reconcile against the displayed parts.
+    const all: ProjectDimension[] = ["tech", "people", "process", "ai"];
+    for (const input of [
+      DEFAULT_INPUTS,
+      withInputs({ dataGb: 12_000, viewers: 300, sources: 14, aiUseCases: 6 }),
+      withInputs({ dataGb: 60, viewers: 3, sources: 1, aiUseCases: 0 }),
+    ]) {
+      const stack = estimateAll(input).find((s) => s.id === "gcp")!;
+      const totals = projectTotals(stack, estimateMigration(input), estimateAi(input));
+      const t = selectedTotals(totals, all);
+
+      // Every headline is an integer, and the parts sum to it exactly.
+      expect(Number.isInteger(t.monthly)).toBe(true);
+      expect(Number.isInteger(t.oneTime)).toBe(true);
+      expect(t.monthly).toBe(all.reduce((a, d) => a + Math.round(totals[d].monthly), 0));
+      expect(t.oneTime).toBe(all.reduce((a, d) => a + Math.round(totals[d].oneTime), 0));
+      expect(t.firstYear).toBe(t.oneTime + t.monthly * 12);
+    }
   });
 });
 

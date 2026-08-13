@@ -1013,6 +1013,66 @@ export function estimateAi(
   };
 }
 
+/* ------------------------------------------------- project totals */
+
+export type ProjectDimension = "tech" | "people" | "process" | "ai";
+
+export interface DimensionTotal {
+  monthly: number;
+  oneTime: number;
+}
+
+/**
+ * The four dimensions rolled up into money, so the chips at the top of the
+ * page can be actual scope switches rather than decoration.
+ *
+ * The mapping is exact, not approximate — every peso in the model lands in
+ * exactly one dimension, which is what makes toggling safe:
+ *
+ *   tech    → the monthly platform bill
+ *   people  → BI licences + monthly ops hours, plus the one-time technical
+ *             delivery team. People cost money both to build and to run,
+ *             which is why this is the only dimension with both halves.
+ *   process → the one-time governance / training / PM lines
+ *   ai      → the one-time AI-agents workstream
+ */
+export function projectTotals(
+  stack: StackCost,
+  migration: MigrationEstimate,
+  ai: AiEstimate,
+): Record<ProjectDimension, DimensionTotal> {
+  const sum = (lines: MigrationLine[]) => round(lines.reduce((a, l) => a + l.cost, 0));
+
+  return {
+    tech: { monthly: stack.platform, oneTime: 0 },
+    people: {
+      monthly: round(stack.licenses + stack.ops),
+      oneTime: sum(migration.technical),
+    },
+    process: { monthly: 0, oneTime: sum(migration.process) },
+    ai: { monthly: 0, oneTime: ai.cost },
+  };
+}
+
+/**
+ * Monthly, one-time and first-year cost for a chosen subset of dimensions.
+ *
+ * Rounds each dimension to whole dollars BEFORE summing, because the UI
+ * displays whole dollars and a client will check the arithmetic by hand.
+ * Carrying hidden cents through the ×12 made first-year land 6 dollars off
+ * what the visible monthly figure predicts — technically right, and exactly
+ * the kind of thing that makes someone distrust every other number on the
+ * page.
+ */
+export function selectedTotals(
+  totals: Record<ProjectDimension, DimensionTotal>,
+  selected: ProjectDimension[],
+): { monthly: number; oneTime: number; firstYear: number } {
+  const monthly = selected.reduce((a, d) => a + Math.round(totals[d].monthly), 0);
+  const oneTime = selected.reduce((a, d) => a + Math.round(totals[d].oneTime), 0);
+  return { monthly, oneTime, firstYear: oneTime + monthly * 12 };
+}
+
 /* ------------------------------------------ combined engine matrix */
 
 /**

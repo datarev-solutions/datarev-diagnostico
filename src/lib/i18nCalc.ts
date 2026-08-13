@@ -16,6 +16,32 @@ export const CALC = {
   dimProcessHint: { es: "Gobernanza, capacitación, coordinación", en: "Governance, training, coordination" },
   dimAi: { es: "IA / Agentes", en: "AI / Agents" },
   dimAiHint: { es: "Diseño, desarrollo y despliegue de agentes", en: "Agent design, development and deployment" },
+  dimSelectHint: {
+    es: "Selecciona qué rubros entran en la cotización. El resumen de abajo suma sólo los que estén activos.",
+    en: "Pick which items are in scope. The summary below adds up only the active ones.",
+  },
+  dimIncluded: { es: "Incluido", en: "Included" },
+  dimExcluded: { es: "Fuera de alcance", en: "Out of scope" },
+
+  // Project summary
+  summaryTitle: { es: "Resumen del proyecto", en: "Project summary" },
+  summaryLead: {
+    es: "Lo que suman los rubros seleccionados, con la plataforma que elijas abajo.",
+    en: "What the selected items add up to, on whichever platform you pick below.",
+  },
+  summaryMonthly: { es: "Mensual (recurrente)", en: "Monthly (recurring)" },
+  summaryOneTime: { es: "Una sola vez", en: "One-time" },
+  summaryOnce: { es: "única vez", en: "one-time" },
+  summaryFirstYear: { es: "Primer año", en: "First year" },
+  summaryFirstYearHint: {
+    es: "Una sola vez + doce meses de corrida",
+    en: "One-time plus twelve months of run rate",
+  },
+  summaryPlatform: { es: "Plataforma para el total", en: "Platform used for the total" },
+  summaryEmpty: {
+    es: "No hay rubros seleccionados. Activa al menos uno arriba para ver un total.",
+    en: "Nothing selected. Switch on at least one item above to see a total.",
+  },
 
   // Input groups
   inputsTitle: { es: "Tu situación actual", en: "Your current situation" },
