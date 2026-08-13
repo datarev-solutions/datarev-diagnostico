@@ -106,11 +106,11 @@ export const PROVENANCE: { group: L; level: Provenance; detail: L }[] = [
     },
   },
   {
-    group: { es: "Tarifas por día del equipo de migración", en: "Migration team day rates" },
+    group: { es: "Tarifas por día del equipo", en: "Team day rates" },
     level: "estimate",
     detail: {
-      es: "Arquitecto/líder $1,400, ingeniero de datos $900, analista BI $650 — tarifas propias de DataRev, editables en pantalla. No son un cotización, son un punto de partida para la conversación de alcance.",
-      en: "Architect/lead $1,400, data engineer $900, BI analyst $650 — DataRev's own rates, editable on screen. Not a quote — a starting point for the scoping conversation.",
+      es: "Arquitecto/líder $1,400, ingeniero de datos $900, analista BI $650, ML Engineer $1,100, Forward Deployed AI Engineer $1,500 — tarifas propias de DataRev, editables en pantalla. No es una cotización, es un punto de partida para la conversación de alcance.",
+      en: "Architect/lead $1,400, data engineer $900, BI analyst $650, ML Engineer $1,100, Forward Deployed AI Engineer $1,500 — DataRev's own rates, editable on screen. Not a quote — a starting point for the scoping conversation.",
     },
   },
 ];
@@ -317,11 +317,20 @@ export const MIGRATION = {
   /**
    * DataRev's own blended day rates by role — an assumption, not a published
    * rate, and the number most worth swapping for a real negotiated figure.
+   *
+   * mlEngineer and fde price the AI/agents workstream (below), not the data
+   * platform migration — kept in the same rate card because both draw on
+   * the same delivery team and a client should see one set of day rates,
+   * not two unrelated ones. Forward Deployed is priced highest: it is the
+   * embedded, client-facing technical role DataRev's own deck lists as a
+   * premium GenAI service, not a standard engineering seat.
    */
   dayRates: {
     architect: 1400,
     engineer: 900,
     analyst: 650,
+    mlEngineer: 1100,
+    fde: 1500,
   },
   /**
    * The project is not only "gente building tecnología" — it also needs
@@ -344,6 +353,20 @@ export const MIGRATION = {
   },
   /** PM/coordination as a share of every other line's days, technical + process. */
   pmOverheadPct: 0.15,
+} as const;
+
+/**
+ * One-time cost of the AI/agents workstream — the fourth dimension, separate
+ * from the data-platform migration above because a client may want either
+ * without the other. Sized by `aiUseCases` (how many agents/use cases are in
+ * scope), not by data volume — an agent's cost tracks its own complexity,
+ * not how many GB sit in the warehouse underneath it.
+ */
+export const AI_IMPLEMENTATION = {
+  design: { baseDays: 3, daysPerUseCase: 1 },
+  build: { daysPerUseCase: 5 },
+  evaluation: { baseDays: 2, daysPerUseCase: 1 },
+  deployment: { baseDays: 3, daysPerSource: 0.5, daysPerUseCase: 1 },
 } as const;
 
 export type MigrationRole = keyof typeof MIGRATION.dayRates;

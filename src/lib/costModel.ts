@@ -1,4 +1,5 @@
 import {
+  AI_IMPLEMENTATION,
   AWS,
   AZURE,
   DATABRICKS,
@@ -35,6 +36,8 @@ export interface CostInputs {
   includeOps: boolean;
   /** Blended internal cost per engineering hour, USD. */
   opsHourlyRate: number;
+  /** Distinct AI agent / use-case builds in scope — sizes the AI workstream. */
+  aiUseCases: number;
 }
 
 export interface CostLine {
@@ -72,6 +75,7 @@ export const DEFAULT_INPUTS: CostInputs = {
   creators: 3,
   includeOps: true,
   opsHourlyRate: 45,
+  aiUseCases: 2,
 };
 
 /* ------------------------------------------------------------- helpers */
@@ -816,6 +820,8 @@ const ROLE_LABEL: Record<MigrationRole, L> = {
   architect: { es: "Arquitecto / líder técnico", en: "Architect / tech lead" },
   engineer: { es: "Ingeniero de datos", en: "Data engineer" },
   analyst: { es: "Analista BI", en: "BI analyst" },
+  mlEngineer: { es: "ML Engineer", en: "ML Engineer" },
+  fde: { es: "Forward Deployed AI Engineer", en: "Forward Deployed AI Engineer" },
 };
 
 /**
@@ -927,6 +933,83 @@ export function estimateMigration(
     lines,
     technical,
     process,
+  };
+}
+
+/* ------------------------------------------------ AI / agents (4th dimension) */
+
+export interface AiEstimate {
+  days: number;
+  cost: number;
+  low: number;
+  high: number;
+  lines: MigrationLine[];
+}
+
+/**
+ * One-time cost of the AI/agents workstream. A separate estimate from
+ * `estimateMigration`, not a category folded into it — a client may want a
+ * data-platform migration without any agent work, or vice versa, and
+ * conflating the two would make neither number quotable on its own.
+ *
+ * Sized by `aiUseCases`, not by data volume: an agent's build cost tracks
+ * how many distinct use cases are in scope, not how many GB sit in the
+ * warehouse underneath it. Deployment additionally scales with
+ * `input.sources`, because integrating an agent into the client's existing
+ * systems is Forward-Deployed work regardless of how many agents there are.
+ */
+export function estimateAi(
+  input: CostInputs,
+  rates: MigrationRates = MIGRATION.dayRates,
+): AiEstimate {
+  const useCases = input.aiUseCases;
+
+  const raw: { label: L; roleKey: MigrationRole; days: number }[] = [
+    {
+      label: { es: "Diseño de casos de uso y arquitectura de agentes", en: "Use-case design and agent architecture" },
+      roleKey: "architect",
+      days: round(AI_IMPLEMENTATION.design.baseDays + useCases * AI_IMPLEMENTATION.design.daysPerUseCase),
+    },
+    {
+      label: { es: "Desarrollo de agentes (RAG, herramientas, fine-tuning)", en: "Agent development (RAG, tools, fine-tuning)" },
+      roleKey: "mlEngineer",
+      days: round(useCases * AI_IMPLEMENTATION.build.daysPerUseCase),
+    },
+    {
+      label: { es: "Evaluación, guardrails y seguridad", en: "Evaluation, guardrails and safety" },
+      roleKey: "mlEngineer",
+      days: round(AI_IMPLEMENTATION.evaluation.baseDays + useCases * AI_IMPLEMENTATION.evaluation.daysPerUseCase),
+    },
+    {
+      label: { es: "Integración y despliegue con el cliente (Forward Deployed)", en: "Client integration and deployment (Forward Deployed)" },
+      roleKey: "fde",
+      days: round(
+        AI_IMPLEMENTATION.deployment.baseDays +
+          input.sources * AI_IMPLEMENTATION.deployment.daysPerSource +
+          useCases * AI_IMPLEMENTATION.deployment.daysPerUseCase,
+      ),
+    },
+  ];
+
+  const lines: MigrationLine[] = raw.map((line) => {
+    const rate = rates[line.roleKey];
+    return {
+      ...line,
+      category: "technical" as const,
+      role: ROLE_LABEL[line.roleKey],
+      rate,
+      cost: round(line.days * rate),
+    };
+  });
+
+  const days = round(lines.reduce((a, l) => a + l.days, 0));
+  const cost = round(lines.reduce((a, l) => a + l.cost, 0));
+  return {
+    days,
+    cost,
+    low: Math.round(cost * 0.8),
+    high: Math.round(cost * 1.4),
+    lines,
   };
 }
 

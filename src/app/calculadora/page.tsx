@@ -15,6 +15,7 @@ import {
 } from "@/lib/cloudPricing";
 import {
   DEFAULT_INPUTS,
+  estimateAi,
   estimateAll,
   estimateEngineMatrix,
   estimateEngines,
@@ -35,11 +36,20 @@ const HOST_LABELS: Record<HostCloud, string> = {
   azure: "Azure",
 };
 
+// Two separate rate editors — Migration's technical/process roles, and the
+// AI workstream's roles — both write into the same shared `rates` state, so
+// an edit in either place applies project-wide, not just to that section.
 const ROLE_ORDER: MigrationRole[] = ["architect", "engineer", "analyst"];
-const ROLE_LABEL_KEY: Record<MigrationRole, "roleArchitect" | "roleEngineer" | "roleAnalyst"> = {
+const AI_ROLE_ORDER: MigrationRole[] = ["mlEngineer", "fde"];
+const ROLE_LABEL_KEY: Record<
+  MigrationRole,
+  "roleArchitect" | "roleEngineer" | "roleAnalyst" | "roleMlEngineer" | "roleFde"
+> = {
   architect: "roleArchitect",
   engineer: "roleEngineer",
   analyst: "roleAnalyst",
+  mlEngineer: "roleMlEngineer",
+  fde: "roleFde",
 };
 
 /**
@@ -417,6 +427,7 @@ export default function CalculatorPage() {
   );
   const engineMatrix = useMemo(() => estimateEngineMatrix(input, dataGb), [input, dataGb]);
   const migration = useMemo(() => estimateMigration(input, rates), [input, rates]);
+  const ai = useMemo(() => estimateAi(input, rates), [input, rates]);
 
   const refreshOptions: { id: Refresh; label: string }[] = [
     { id: "daily", label: t(CALC.refreshDaily) },
@@ -438,11 +449,12 @@ export default function CalculatorPage() {
             {t(CALC.lead)}
           </p>
 
-          <ul className="mt-5 grid gap-3 sm:grid-cols-3">
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: t(CALC.dimTech), hint: t(CALC.dimTechHint), color: LAYER.platform },
               { label: t(CALC.dimPeople), hint: t(CALC.dimPeopleHint), color: LAYER.licenses },
               { label: t(CALC.dimProcess), hint: t(CALC.dimProcessHint), color: LAYER.ops },
+              { label: t(CALC.dimAi), hint: t(CALC.dimAiHint), color: "var(--cyan)" },
             ].map((d) => (
               <li
                 key={d.label}
@@ -530,6 +542,16 @@ export default function CalculatorPage() {
                 value={fromGb(input.queryGbPerMonth)}
                 display={volumeLabel(input.queryGbPerMonth, locale)}
                 onChange={(v) => set("queryGbPerMonth", toGb(v))}
+              />
+              <Slider
+                label={t(CALC.aiUseCases)}
+                hint={t(CALC.aiUseCasesHint)}
+                value={input.aiUseCases}
+                display={num(input.aiUseCases, locale)}
+                min={0}
+                max={15}
+                step={1}
+                onChange={(v) => set("aiUseCases", v)}
               />
             </div>
 
@@ -867,6 +889,82 @@ export default function CalculatorPage() {
               </p>
               <p className="tnum mt-2 text-[22px] font-bold leading-tight tracking-tight">
                 {usd(migration.low, locale)} – {usd(migration.high, locale)}
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {t(CALC.migrationRange)}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* AI / agents — the fourth dimension */}
+        <section className="card card-lit avoid-break mt-6 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <h2 className="text-[15px] font-semibold tracking-tight">{t(CALC.aiTitle)}</h2>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+                {t(CALC.aiLead)}
+              </p>
+            </div>
+          </div>
+
+          <div className="no-print mt-5 grid gap-3 sm:grid-cols-2">
+            {AI_ROLE_ORDER.map((role) => (
+              <label key={role} className="block">
+                <span className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
+                  {t(CALC[ROLE_LABEL_KEY[role]])} · {t(CALC.migrationRates)}
+                </span>
+                <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2">
+                  <span className="text-[12px] text-[var(--text-muted)]">$</span>
+                  <input
+                    type="number"
+                    min={100}
+                    max={5000}
+                    step={50}
+                    value={rates[role]}
+                    onChange={(e) =>
+                      setRates((current) => ({
+                        ...current,
+                        [role]: Number(e.target.value) || 0,
+                      }))
+                    }
+                    className="tnum w-full bg-transparent text-[13px] outline-none"
+                  />
+                  <span className="text-[11px] text-[var(--text-muted)]">/d</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-6 md:grid-cols-[1fr_auto]">
+            <ul className="space-y-2">
+              {ai.lines.map((line) => (
+                <li
+                  key={line.label.en}
+                  className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-2 text-[12.5px]"
+                >
+                  <span>
+                    <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
+                    <span className="ml-1.5 text-[10.5px] text-[var(--text-muted)]">
+                      · {t(line.role)}
+                    </span>
+                  </span>
+                  <span className="tnum whitespace-nowrap font-medium">
+                    {line.days.toLocaleString(locale === "es" ? "es-MX" : "en-US", {
+                      maximumFractionDigits: 1,
+                    })}{" "}
+                    d · {usd(line.cost, locale)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="md:w-64">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {Math.round(ai.days)} {t(CALC.aiDays)}
+              </p>
+              <p className="tnum mt-2 text-[22px] font-bold leading-tight tracking-tight">
+                {usd(ai.low, locale)} – {usd(ai.high, locale)}
               </p>
               <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
                 {t(CALC.migrationRange)}

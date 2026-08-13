@@ -14,6 +14,8 @@ export const CALC = {
   dimPeopleHint: { es: "Quién la construye y quién la opera", en: "Who builds it and who runs it" },
   dimProcess: { es: "Procesos", en: "Process" },
   dimProcessHint: { es: "Gobernanza, capacitación, coordinación", en: "Governance, training, coordination" },
+  dimAi: { es: "IA / Agentes", en: "AI / Agents" },
+  dimAiHint: { es: "Diseño, desarrollo y despliegue de agentes", en: "Agent design, development and deployment" },
 
   // Input groups
   inputsTitle: { es: "Tu situación actual", en: "Your current situation" },
@@ -149,6 +151,21 @@ export const CALC = {
     es: "Lo que casi siempre se omite en una estimación — y por lo que suele salir baja",
     en: "What almost always gets left out of an estimate — and why estimates come in low",
   },
+  roleMlEngineer: { es: "ML Engineer", en: "ML Engineer" },
+  roleFde: { es: "Forward Deployed AI Engineer", en: "Forward Deployed AI Engineer" },
+
+  // AI / agents (4th dimension)
+  aiTitle: { es: "Implementación de IA / agentes", en: "AI / agents implementation" },
+  aiLead: {
+    es: "Un cuarto costo, aparte de la migración de datos: diseñar, construir y desplegar agentes con un cliente. Un proyecto puede necesitar uno de los dos, o ambos.",
+    en: "A fourth cost, separate from the data migration: designing, building and deploying agents with a client. A project may need one, the other, or both.",
+  },
+  aiUseCases: { es: "Casos de uso de IA / agentes", en: "AI / agent use cases" },
+  aiUseCasesHint: {
+    es: "Cuántos agentes distintos hay que diseñar, construir y desplegar. El costo escala con esto, no con el volumen de datos.",
+    en: "How many distinct agents need designing, building and deploying. Cost scales with this, not with data volume.",
+  },
+  aiDays: { es: "días de consultoría", en: "consulting days" },
 
   ctaTitle: { es: "¿Quieres el número real?", en: "Want the real number?" },
   ctaLead: {

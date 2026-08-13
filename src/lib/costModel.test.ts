@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AZURE, MIGRATION } from "./cloudPricing";
+import { AI_IMPLEMENTATION, AZURE, MIGRATION } from "./cloudPricing";
 import {
   DEFAULT_INPUTS,
+  estimateAi,
   estimateAll,
   estimateEngineMatrix,
   estimateEngines,
@@ -220,7 +221,7 @@ describe("portable engines", () => {
 });
 
 describe("migration estimate", () => {
-  const FLAT_RATES = { architect: 900, engineer: 900, analyst: 900 };
+  const FLAT_RATES = { architect: 900, engineer: 900, analyst: 900, mlEngineer: 900, fde: 900 };
 
   it("returns a range, never a point estimate", () => {
     const m = estimateMigration(DEFAULT_INPUTS, FLAT_RATES);
@@ -304,7 +305,13 @@ describe("migration estimate", () => {
   });
 
   it("prices PM/coordination as a share of every other line's days", () => {
-    const m = estimateMigration(DEFAULT_INPUTS, { architect: 1000, engineer: 1000, analyst: 1000 });
+    const m = estimateMigration(DEFAULT_INPUTS, {
+      architect: 1000,
+      engineer: 1000,
+      analyst: 1000,
+      mlEngineer: 1000,
+      fde: 1000,
+    });
     const pm = m.process.find((l) => l.label.en.includes("coordination"))!;
     const everythingElse = m.lines
       .filter((l) => l !== pm)
@@ -317,6 +324,66 @@ describe("migration estimate", () => {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+describe("AI / agents estimate (the fourth dimension)", () => {
+  it("is zero-ish at zero use cases but never negative, and grows with use cases", () => {
+    const none = estimateAi(withInputs({ aiUseCases: 0 }));
+    const some = estimateAi(withInputs({ aiUseCases: 3 }));
+
+    expect(none.days).toBeGreaterThanOrEqual(0);
+    expect(none.cost).toBeGreaterThanOrEqual(0);
+    expect(some.days).toBeGreaterThan(none.days);
+    expect(some.cost).toBeGreaterThan(none.cost);
+  });
+
+  it("prices build work on the ML Engineer rate and deployment on the FDE rate", () => {
+    const m = estimateAi(withInputs({ aiUseCases: 4, sources: 6 }));
+    const build = m.lines.find((l) => l.label.en.includes("Agent development"))!;
+    const deploy = m.lines.find((l) => l.label.en.includes("deployment"))!;
+
+    expect(build.roleKey).toBe("mlEngineer");
+    expect(build.rate).toBe(MIGRATION.dayRates.mlEngineer);
+    expect(deploy.roleKey).toBe("fde");
+    expect(deploy.rate).toBe(MIGRATION.dayRates.fde);
+    // FDE is the deck's premium embedded role — priced highest of the five.
+    expect(MIGRATION.dayRates.fde).toBeGreaterThan(MIGRATION.dayRates.architect);
+  });
+
+  it("scales deployment with source count, independent of use-case count", () => {
+    const fewSources = estimateAi(withInputs({ aiUseCases: 2, sources: 2 }));
+    const manySources = estimateAi(withInputs({ aiUseCases: 2, sources: 20 }));
+    const deployFew = fewSources.lines.find((l) => l.label.en.includes("deployment"))!;
+    const deployMany = manySources.lines.find((l) => l.label.en.includes("deployment"))!;
+
+    expect(deployMany.days).toBeGreaterThan(deployFew.days);
+    expect(deployMany.days).toBeCloseTo(
+      AI_IMPLEMENTATION.deployment.baseDays +
+        20 * AI_IMPLEMENTATION.deployment.daysPerSource +
+        2 * AI_IMPLEMENTATION.deployment.daysPerUseCase,
+      1,
+    );
+  });
+
+  it("is independent of estimateMigration — a project can order either without the other", () => {
+    const input = withInputs({ aiUseCases: 5, sources: 10 });
+    const migration = estimateMigration(input);
+    const ai = estimateAi(input);
+
+    // Disjoint line sets: no AI line leaks into migration's totals or vice versa.
+    const migrationLabels = new Set(migration.lines.map((l) => l.label.en));
+    const aiLabels = new Set(ai.lines.map((l) => l.label.en));
+    for (const label of aiLabels) expect(migrationLabels.has(label)).toBe(false);
+  });
+
+  it("returns a range, never a point estimate", () => {
+    const m = estimateAi(withInputs({ aiUseCases: 3 }));
+    expect(m.low).toBeLessThan(m.high);
+    expect(m.cost).toBeCloseTo(
+      m.lines.reduce((a, l) => a + l.cost, 0),
+      1,
+    );
+  });
+});
 
 describe("engine matrix (all hosts together)", () => {
   it("returns three hosts, each with the three engines", () => {
