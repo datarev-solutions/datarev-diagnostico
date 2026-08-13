@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { AZURE } from "./cloudPricing";
+import { AZURE, MIGRATION } from "./cloudPricing";
 import {
   DEFAULT_INPUTS,
   estimateAll,
+  estimateEngineMatrix,
   estimateEngines,
   estimateMigration,
   ingestGbPerMonth,
@@ -106,6 +107,24 @@ describe("the Fabric F64 licensing cliff", () => {
     expect(azure.notes.some((n) => n.es.includes("F64"))).toBe(true);
   });
 
+  it("states the breakeven viewer count algebraically, not inflated by editor headcount", () => {
+    // Regression: an earlier version added `+ editors` to the breakeven
+    // viewer count in the advisory text. Editors pay Pro under both the
+    // small SKU and F64+, so their cost term cancels out of the equation —
+    // adding them back overstated the breakeven by exactly the editor count.
+    const input = withInputs({ viewers: 40, analysts: 8, creators: 3, dataGb: 500, queryGbPerMonth: 2000 });
+    const azure = stack(input, "azure");
+    // Independently derive the true crossover for this scenario's fitted SKU.
+    const fittedSku = AZURE.fabricSkus.find((s) => s.cu >= sizeFabricCu(input, 500))!;
+    const f64 = AZURE.fabricSkus.find((s) => s.cu === 64)!;
+    const trueBreakeven = Math.ceil((f64.monthly - fittedSku.monthly) / AZURE.powerBiPro);
+
+    const note = azure.notes.find((n) => n.en.includes("crossover"))!;
+    expect(note.en).toContain(String(trueBreakeven));
+    // The old (buggy) figure included +11 editors — must not appear.
+    expect(note.en).not.toContain(String(trueBreakeven + 11));
+  });
+
   it("never pays more than the naive small-capacity option", () => {
     // Whatever the audience size, the chosen configuration must beat or
     // match "smallest capacity that fits + a Pro seat for everyone".
@@ -201,25 +220,68 @@ describe("portable engines", () => {
 });
 
 describe("migration estimate", () => {
+  const FLAT_RATES = { architect: 900, engineer: 900, analyst: 900 };
+
   it("returns a range, never a point estimate", () => {
-    const m = estimateMigration(DEFAULT_INPUTS, 900);
+    const m = estimateMigration(DEFAULT_INPUTS, FLAT_RATES);
 
     expect(m.low).toBeLessThan(m.high);
     expect(m.days).toBeCloseTo(
       m.lines.reduce((a, l) => a + l.days, 0),
       1,
     );
+    expect(m.cost).toBeCloseTo(
+      m.lines.reduce((a, l) => a + l.cost, 0),
+      1,
+    );
   });
 
   it("grows with sources and analysts, and caps the volume component", () => {
-    const few = estimateMigration(withInputs({ sources: 2 }), 900);
-    const many = estimateMigration(withInputs({ sources: 20 }), 900);
+    const few = estimateMigration(withInputs({ sources: 2 }), FLAT_RATES);
+    const many = estimateMigration(withInputs({ sources: 20 }), FLAT_RATES);
     expect(many.days).toBeGreaterThan(few.days);
 
     // Backfill effort flattens out — a 500 TB migration is not 50x a 10 TB one.
-    const huge = estimateMigration(withInputs({ dataGb: 500_000 }), 900);
+    const huge = estimateMigration(withInputs({ dataGb: 500_000 }), FLAT_RATES);
     const backfill = huge.lines.find((l) => l.label.en.includes("backfill"))!;
     expect(backfill.days).toBeLessThanOrEqual(30);
+  });
+
+  it("prices each line by the role that actually does the work, not one flat rate", () => {
+    // Discovery/architecture is senior work; report rebuilds are BI work.
+    // With a real (non-flat) rate card the two must diverge.
+    const m = estimateMigration(DEFAULT_INPUTS);
+    const discovery = m.lines.find((l) => l.roleKey === "architect")!;
+    const reports = m.lines.find((l) => l.roleKey === "analyst")!;
+
+    expect(discovery.rate).toBe(MIGRATION.dayRates.architect);
+    expect(reports.rate).toBe(MIGRATION.dayRates.analyst);
+    expect(discovery.rate).toBeGreaterThan(reports.rate);
+    expect(discovery.cost).toBe(discovery.days * discovery.rate);
+  });
+
+  it("only counts a discipline if some line actually uses it", () => {
+    const m = estimateMigration(DEFAULT_INPUTS);
+    const roles = new Set(m.lines.map((l) => l.roleKey));
+    expect(roles).toEqual(new Set(["architect", "engineer", "analyst"]));
+  });
+});
+
+describe("engine matrix (all hosts together)", () => {
+  it("returns three hosts, each with the three engines", () => {
+    const matrix = estimateEngineMatrix(DEFAULT_INPUTS, 500);
+    expect(matrix.map((m) => m.host)).toEqual(["gcp", "aws", "azure"]);
+    for (const row of matrix) {
+      expect(row.engines.map((e) => e.id)).toEqual(["native", "snowflake", "databricks"]);
+    }
+  });
+
+  it("matches estimateEngines called per host directly", () => {
+    const matrix = estimateEngineMatrix(DEFAULT_INPUTS, 500);
+    for (const row of matrix) {
+      const direct = estimateEngines(DEFAULT_INPUTS, 500, row.host);
+      expect(row.engines.map((e) => e.total)).toEqual(direct.map((e) => e.total));
+    }
   });
 });
 

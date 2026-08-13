@@ -105,6 +105,14 @@ export const PROVENANCE: { group: L; level: Provenance; detail: L }[] = [
       en: "Credits per TiB scanned, DBUs per TB processed, hours a warehouse stays awake, and migration days per source. Reasoned orders of magnitude, not measurements. This is where the result moves most.",
     },
   },
+  {
+    group: { es: "Tarifas por día del equipo de migración", en: "Migration team day rates" },
+    level: "estimate",
+    detail: {
+      es: "Arquitecto/líder $1,400, ingeniero de datos $900, analista BI $650 — tarifas propias de DataRev, editables en pantalla. No son un cotización, son un punto de partida para la conversación de alcance.",
+      en: "Architect/lead $1,400, data engineer $900, BI analyst $650 — DataRev's own rates, editable on screen. Not a quote — a starting point for the scoping conversation.",
+    },
+  },
 ];
 
 /* ------------------------------------------------------------------ GCP */
@@ -290,6 +298,12 @@ export const DATABRICKS = {
  * One-time cost to get onto any of these platforms. Deliberately expressed
  * in consultant-days rather than a dollar total, because the day rate is the
  * number DataRev actually negotiates.
+ *
+ * Different work needs different seniority. Pricing architecture, source
+ * integration and report rebuilds at one flat rate understates who actually
+ * does discovery (a lead/architect, priced highest) and overstates what a
+ * BI rebuild costs (an analyst, priced lowest) — so each line carries its
+ * own role and rate rather than a single day rate applied to everything.
  */
 export const MIGRATION = {
   discoveryDays: 5,
@@ -300,8 +314,18 @@ export const MIGRATION = {
   /** Extra days as volume grows — history backfill and reconciliation. */
   volumeDaysPerTb: 0.4,
   maxVolumeDays: 30,
-  defaultDayRate: 900,
+  /**
+   * DataRev's own blended day rates by role — an assumption, not a published
+   * rate, and the number most worth swapping for a real negotiated figure.
+   */
+  dayRates: {
+    architect: 1400,
+    engineer: 900,
+    analyst: 650,
+  },
 } as const;
+
+export type MigrationRole = keyof typeof MIGRATION.dayRates;
 
 /* ------------------------------------------------------- SHARED / OPS */
 

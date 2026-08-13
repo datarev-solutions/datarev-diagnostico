@@ -29,7 +29,11 @@ export const CALC = {
   peopleTitle: { es: "Personas", en: "People" },
   viewers: { es: "Lectores de tableros", en: "Dashboard viewers" },
   analysts: { es: "Analistas", en: "Analysts" },
-  creators: { es: "Constructores", en: "Builders" },
+  creators: { es: "Constructores de BI", en: "BI builders" },
+  creatorsHint: {
+    es: "Autores/desarrolladores con licencia de edición (QuickSight Author, Power BI Pro creador, Looker Studio editor). No es el equipo que hace la migración — ese va abajo, en Migración.",
+    en: "Editing-licence authors/developers (QuickSight Author, Power BI Pro creator, Looker Studio editor). Not the delivery team doing the migration — that is below, under Migration.",
+  },
   peopleHint: {
     es: "El número de lectores es el factor que más mueve la comparación. Ahí está la diferencia real entre las plataformas.",
     en: "Viewer count is the single biggest lever in this comparison. That is where the platforms actually diverge.",
@@ -105,18 +109,30 @@ export const CALC = {
   },
   nativeBadge: { es: "Nativo", en: "Native" },
 
+  // Combined engine matrix
+  matrixTitle: { es: "Las tres nubes, juntas", en: "All three clouds, together" },
+  matrixLead: {
+    es: "Los mismos nueve escenarios (tres motores × tres nubes) en una sola tabla, para comparar sin cambiar de pestaña.",
+    en: "The same nine scenarios (three engines × three hosts) in one table, so you can compare without switching tabs.",
+  },
+  matrixEngine: { es: "Motor", en: "Engine" },
+  matrixDetailHeading: { es: "Detalle por nube", en: "Detail by cloud" },
+
   // Migration
   migrationTitle: { es: "Costo de migración, una sola vez", en: "One-time migration cost" },
   migrationLead: {
-    es: "Lo anterior es la corrida mensual. Llegar ahí cuesta aparte, y suele ser la cifra que más pesa en la decisión.",
-    en: "Everything above is the monthly run rate. Getting there costs extra, and it is usually the number that decides the deal.",
+    es: "Lo anterior es la corrida mensual. Llegar ahí cuesta aparte, y suele ser la cifra que más pesa en la decisión. Cada etapa la hace un rol distinto, a una tarifa distinta — no es un solo consultor genérico.",
+    en: "Everything above is the monthly run rate. Getting there costs extra, and it is usually the number that decides the deal. Each stage is done by a different role, at a different rate — not one generic consultant.",
   },
   migrationDays: { es: "días de consultoría", en: "consulting days" },
-  migrationRate: { es: "Tarifa por día", en: "Day rate" },
+  migrationRates: { es: "Tarifas por día", en: "Day rates" },
   migrationRange: {
     es: "Se expresa como rango a propósito: una cifra puntual para un trabajo de migración siempre sale mal.",
     en: "Deliberately a range: a point estimate for migration work is always wrong.",
   },
+  roleArchitect: { es: "Arquitecto / líder", en: "Architect / lead" },
+  roleEngineer: { es: "Ingeniero de datos", en: "Data engineer" },
+  roleAnalyst: { es: "Analista BI", en: "BI analyst" },
 
   ctaTitle: { es: "¿Quieres el número real?", en: "Want the real number?" },
   ctaLead: {

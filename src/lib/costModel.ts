@@ -7,6 +7,7 @@ import {
   OPS_HOURS,
   OSS,
   SNOWFLAKE,
+  type MigrationRole,
 } from "./cloudPricing";
 import type { L } from "./framework";
 
@@ -380,7 +381,11 @@ function azureCost(input: CostInputs, dataGb: number): StackCost {
       en: `Worth showing on screen: the technical fit was F${fitted.cu}, but jumping to F64 costs less. At F64+ viewers stop needing licences, and with ${input.viewers} viewers that more than pays for the extra capacity.`,
     });
   } else if (sku.cu < AZURE.freeViewerThresholdCu) {
-    const breakeven = Math.ceil((f64.monthly - fitted.monthly) / AZURE.powerBiPro) + editors;
+    // Solve smallOption(v) = f64Option for viewers v. Editors pay Pro either
+    // way, so the editors*price term appears on both sides and cancels —
+    // adding it back here (an earlier version did) overstates the breakeven
+    // by exactly the editor count. Regression-tested in costModel.test.ts.
+    const breakeven = Math.ceil((f64.monthly - fitted.monthly) / AZURE.powerBiPro);
     notes.push({
       es: `Con esta plantilla conviene la capacidad pequeña. El punto de cruce está alrededor de ${breakeven} usuarios: por encima de eso, saltar a F64 y dejar de pagar licencias de lectura sale más barato.`,
       en: `At this headcount the small capacity wins. The crossover sits around ${breakeven} users: past that, jumping to F64 and dropping viewer licences is cheaper.`,
@@ -780,18 +785,51 @@ export function estimateEngines(
 
 /* --------------------------------------------------------- migration */
 
-export interface MigrationEstimate {
+// Widened from `typeof MIGRATION.dayRates`, which — being `as const` —
+// would otherwise type each field as its literal default (e.g. `1400`) and
+// reject any other number, including a value typed into the rate input.
+export type MigrationRates = Record<MigrationRole, number>;
+
+export interface MigrationLine {
+  label: L;
+  role: L;
+  roleKey: MigrationRole;
   days: number;
-  low: number;
-  high: number;
-  lines: { label: L; days: number }[];
+  rate: number;
+  cost: number;
 }
 
+export interface MigrationEstimate {
+  days: number;
+  cost: number;
+  low: number;
+  high: number;
+  lines: MigrationLine[];
+}
+
+const ROLE_LABEL: Record<MigrationRole, L> = {
+  architect: { es: "Arquitecto / líder técnico", en: "Architect / tech lead" },
+  engineer: { es: "Ingeniero de datos", en: "Data engineer" },
+  analyst: { es: "Analista BI", en: "BI analyst" },
+};
+
 /**
- * One-time cost to land on any of these platforms. Quoted as a range because
- * a point estimate for migration work is always wrong.
+ * One-time cost to land on any of these platforms, priced by who actually
+ * does each piece of work rather than one flat day rate for everyone.
+ *
+ * Architecture and discovery is senior work (architect/lead rate). Source
+ * integration and history backfill is hands-on pipeline work (engineer
+ * rate). Rebuilding reports on the new semantic layer is BI work (analyst
+ * rate) — and scales with `input.analysts` because that is literally who
+ * signs off on "does this report match the old one."
+ *
+ * Quoted as a range because a point estimate for migration work is always
+ * wrong.
  */
-export function estimateMigration(input: CostInputs, dayRate: number): MigrationEstimate {
+export function estimateMigration(
+  input: CostInputs,
+  rates: MigrationRates = MIGRATION.dayRates,
+): MigrationEstimate {
   const volumeDays = Math.min(
     MIGRATION.maxVolumeDays,
     (input.dataGb / 1024) * MIGRATION.volumeDaysPerTb,
@@ -799,18 +837,63 @@ export function estimateMigration(input: CostInputs, dayRate: number): Migration
   const sourceDays = input.sources * MIGRATION.perSourceDays;
   const reportDays = input.analysts * MIGRATION.perAnalystDays;
 
-  const lines = [
-    { label: { es: "Descubrimiento y arquitectura", en: "Discovery and architecture" }, days: MIGRATION.discoveryDays },
-    { label: { es: `Integrar ${input.sources} fuentes`, en: `Integrate ${input.sources} sources` }, days: round(sourceDays) },
-    { label: { es: "Backfill histórico y conciliación", en: "History backfill and reconciliation" }, days: round(volumeDays) },
-    { label: { es: "Reconstruir reportes y capa semántica", en: "Rebuild reports and semantic layer" }, days: round(reportDays) },
+  const raw: { label: L; roleKey: MigrationRole; days: number }[] = [
+    {
+      label: { es: "Descubrimiento y arquitectura", en: "Discovery and architecture" },
+      roleKey: "architect",
+      days: MIGRATION.discoveryDays,
+    },
+    {
+      label: { es: `Integrar ${input.sources} fuentes`, en: `Integrate ${input.sources} sources` },
+      roleKey: "engineer",
+      days: round(sourceDays),
+    },
+    {
+      label: { es: "Backfill histórico y conciliación", en: "History backfill and reconciliation" },
+      roleKey: "engineer",
+      days: round(volumeDays),
+    },
+    {
+      label: { es: "Reconstruir reportes y capa semántica", en: "Rebuild reports and semantic layer" },
+      roleKey: "analyst",
+      days: round(reportDays),
+    },
   ];
 
+  const lines: MigrationLine[] = raw.map((line) => {
+    const rate = rates[line.roleKey];
+    return {
+      ...line,
+      role: ROLE_LABEL[line.roleKey],
+      rate,
+      cost: round(line.days * rate),
+    };
+  });
+
   const days = round(lines.reduce((a, l) => a + l.days, 0));
+  const cost = round(lines.reduce((a, l) => a + l.cost, 0));
   return {
     days,
-    low: Math.round(days * dayRate * 0.8),
-    high: Math.round(days * dayRate * 1.4),
+    cost,
+    low: Math.round(cost * 0.8),
+    high: Math.round(cost * 1.4),
     lines,
   };
+}
+
+/* ------------------------------------------ combined engine matrix */
+
+/**
+ * All three engines on all three host clouds, for a side-by-side comparative
+ * rather than one host at a time behind a toggle.
+ */
+export function estimateEngineMatrix(
+  input: CostInputs,
+  dataGb: number,
+): { host: HostCloud; label: string; engines: EngineCost[] }[] {
+  return (["gcp", "aws", "azure"] as const).map((host) => ({
+    host,
+    label: HOST_LABEL[host],
+    engines: estimateEngines(input, dataGb, host),
+  }));
 }

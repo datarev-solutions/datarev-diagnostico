@@ -10,16 +10,20 @@ import {
   PRICING_SOURCES,
   PROVENANCE,
   REGION_NOTE,
+  type MigrationRole,
   type Provenance,
 } from "@/lib/cloudPricing";
 import {
   DEFAULT_INPUTS,
   estimateAll,
+  estimateEngineMatrix,
   estimateEngines,
   estimateMigration,
   projectDataGb,
   type CostInputs,
+  type EngineId,
   type HostCloud,
+  type MigrationRates,
   type Refresh,
   type StackCost,
 } from "@/lib/costModel";
@@ -29,6 +33,13 @@ const HOST_LABELS: Record<HostCloud, string> = {
   gcp: "GCP",
   aws: "AWS",
   azure: "Azure",
+};
+
+const ROLE_ORDER: MigrationRole[] = ["architect", "engineer", "analyst"];
+const ROLE_LABEL_KEY: Record<MigrationRole, "roleArchitect" | "roleEngineer" | "roleAnalyst"> = {
+  architect: "roleArchitect",
+  engineer: "roleEngineer",
+  analyst: "roleAnalyst",
 };
 
 /**
@@ -309,15 +320,84 @@ function CompareChart({
   );
 }
 
+const ENGINE_ROWS: EngineId[] = ["native", "snowflake", "databricks"];
+const ENGINE_ROW_LABEL: Record<EngineId, string> = {
+  native: "Nativo",
+  snowflake: "Snowflake",
+  databricks: "Databricks",
+};
+
+/**
+ * All nine host×engine combinations in one table. The per-host cards below
+ * keep the line-item detail and "what to say" notes; this table exists so
+ * the three clouds can be read side by side without switching the toggle.
+ */
+function EngineMatrix({
+  matrix,
+  locale,
+  t,
+}: {
+  matrix: ReturnType<typeof estimateEngineMatrix>;
+  locale: string;
+  t: (v: { es: string; en: string }) => string;
+}) {
+  const cheapestTotal = Math.min(
+    ...matrix.flatMap((row) => row.engines.map((e) => e.total)),
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[480px] border-collapse text-[12.5px]">
+        <thead>
+          <tr>
+            <th className="border-b border-[var(--border)] px-2 py-2 text-left font-semibold text-[var(--text-muted)]">
+              {t(CALC.matrixEngine)}
+            </th>
+            {matrix.map((row) => (
+              <th
+                key={row.host}
+                className="border-b border-[var(--border)] px-3 py-2 text-right font-semibold text-[var(--text-primary)]"
+              >
+                {HOST_LABELS[row.host]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ENGINE_ROWS.map((engineId) => (
+            <tr key={engineId} className="border-b border-[var(--border)] last:border-0">
+              <td className="px-2 py-2.5 font-medium text-[var(--text-secondary)]">
+                {ENGINE_ROW_LABEL[engineId]}
+              </td>
+              {matrix.map((row) => {
+                const cell = row.engines.find((e) => e.id === engineId)!;
+                const isCheapest = cell.total === cheapestTotal;
+                return (
+                  <td
+                    key={row.host}
+                    className={`tnum px-3 py-2.5 text-right font-semibold ${
+                      isCheapest ? "text-[var(--cyan)]" : "text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {usd(cell.total, locale)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function CalculatorPage() {
   const { t, locale } = useApp();
   const [input, setInput] = useState<CostInputs>(DEFAULT_INPUTS);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
   const [host, setHost] = useState<HostCloud>("aws");
-  // Explicit number: MIGRATION is `as const`, so the literal 900 would
-  // otherwise narrow the state type and reject any other rate.
-  const [dayRate, setDayRate] = useState<number>(MIGRATION.defaultDayRate);
+  const [rates, setRates] = useState<MigrationRates>({ ...MIGRATION.dayRates });
 
   const set = <K extends keyof CostInputs>(key: K, value: CostInputs[K]) =>
     setInput((current) => ({ ...current, [key]: value }));
@@ -335,7 +415,8 @@ export default function CalculatorPage() {
     () => engines.reduce((a, b) => (b.total < a.total ? b : a)).id,
     [engines],
   );
-  const migration = useMemo(() => estimateMigration(input, dayRate), [input, dayRate]);
+  const engineMatrix = useMemo(() => estimateEngineMatrix(input, dataGb), [input, dataGb]);
+  const migration = useMemo(() => estimateMigration(input, rates), [input, rates]);
 
   const refreshOptions: { id: Refresh; label: string }[] = [
     { id: "daily", label: t(CALC.refreshDaily) },
@@ -451,6 +532,7 @@ export default function CalculatorPage() {
               />
               <Slider
                 label={t(CALC.creators)}
+                hint={t(CALC.creatorsHint)}
                 value={input.creators}
                 display={num(input.creators, locale)}
                 min={0}
@@ -582,6 +664,20 @@ export default function CalculatorPage() {
                 {t(CALC.enginesLead)}
               </p>
             </div>
+          </div>
+
+          <h3 className="mt-6 text-[12.5px] font-semibold text-[var(--text-primary)]">
+            {t(CALC.matrixTitle)}
+          </h3>
+          <p className="mt-1 text-[11.5px] text-[var(--text-secondary)]">{t(CALC.matrixLead)}</p>
+          <div className="mt-3">
+            <EngineMatrix matrix={engineMatrix} locale={locale} t={t} />
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-5">
+            <h3 className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+              {t(CALC.matrixDetailHeading)}
+            </h3>
             <div className="no-print shrink-0">
               <span className="mb-1.5 block text-[11px] font-medium text-[var(--text-muted)]">
                 {t(CALC.host)}
@@ -674,33 +770,54 @@ export default function CalculatorPage() {
                 {t(CALC.migrationLead)}
               </p>
             </div>
-            <div className="no-print flex items-center gap-2">
-              <span className="text-[11.5px] text-[var(--text-muted)]">{t(CALC.migrationRate)}</span>
-              <input
-                type="number"
-                min={100}
-                max={5000}
-                step={50}
-                value={dayRate}
-                onChange={(e) => setDayRate(Number(e.target.value) || 0)}
-                className="tnum w-24 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-2 py-1 text-[12.5px]"
-              />
-            </div>
           </div>
 
-          <div className="mt-5 grid gap-6 md:grid-cols-[1fr_auto]">
+          <div className="no-print mt-5 grid gap-3 sm:grid-cols-3">
+            {ROLE_ORDER.map((role) => (
+              <label key={role} className="block">
+                <span className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
+                  {t(CALC[ROLE_LABEL_KEY[role]])} · {t(CALC.migrationRates)}
+                </span>
+                <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2">
+                  <span className="text-[12px] text-[var(--text-muted)]">$</span>
+                  <input
+                    type="number"
+                    min={100}
+                    max={5000}
+                    step={50}
+                    value={rates[role]}
+                    onChange={(e) =>
+                      setRates((current) => ({
+                        ...current,
+                        [role]: Number(e.target.value) || 0,
+                      }))
+                    }
+                    className="tnum w-full bg-transparent text-[13px] outline-none"
+                  />
+                  <span className="text-[11px] text-[var(--text-muted)]">/d</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-6 md:grid-cols-[1fr_auto]">
             <ul className="space-y-2">
               {migration.lines.map((line) => (
                 <li
                   key={line.label.en}
                   className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-2 text-[12.5px]"
                 >
-                  <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
+                  <span>
+                    <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
+                    <span className="ml-1.5 text-[10.5px] text-[var(--text-muted)]">
+                      · {t(line.role)}
+                    </span>
+                  </span>
                   <span className="tnum whitespace-nowrap font-medium">
                     {line.days.toLocaleString(locale === "es" ? "es-MX" : "en-US", {
                       maximumFractionDigits: 1,
                     })}{" "}
-                    d
+                    d · {usd(line.cost, locale)}
                   </span>
                 </li>
               ))}
