@@ -323,6 +323,27 @@ export const MIGRATION = {
     engineer: 900,
     analyst: 650,
   },
+  /**
+   * The project is not only "gente building tecnología" — it also needs
+   * process work that a pure technical-delivery estimate skips entirely:
+   * governance/security setup, change management and training, and the
+   * project-management overhead of coordinating all of it. Enterprise data
+   * projects commonly run 15-25% of total effort in this category; omitting
+   * it is the most common way a migration estimate comes in low.
+   */
+  governance: {
+    baseDays: 3,
+    /** More source systems means more access policies and data contracts. */
+    daysPerSource: 0.3,
+  },
+  training: {
+    baseDays: 2,
+    /** Roughly one day of enablement per 15 platform users, capped. */
+    usersPerDay: 15,
+    maxDays: 15,
+  },
+  /** PM/coordination as a share of every other line's days, technical + process. */
+  pmOverheadPct: 0.15,
 } as const;
 
 export type MigrationRole = keyof typeof MIGRATION.dayRates;

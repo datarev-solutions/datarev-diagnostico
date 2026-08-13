@@ -437,6 +437,31 @@ export default function CalculatorPage() {
           <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
             {t(CALC.lead)}
           </p>
+
+          <ul className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: t(CALC.dimTech), hint: t(CALC.dimTechHint), color: LAYER.platform },
+              { label: t(CALC.dimPeople), hint: t(CALC.dimPeopleHint), color: LAYER.licenses },
+              { label: t(CALC.dimProcess), hint: t(CALC.dimProcessHint), color: LAYER.ops },
+            ].map((d) => (
+              <li
+                key={d.label}
+                className="flex items-start gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3.5 py-2.5"
+              >
+                <span
+                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: d.color }}
+                  aria-hidden="true"
+                />
+                <span>
+                  <span className="block text-[12.5px] font-semibold text-[var(--text-primary)]">
+                    {d.label}
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-muted)]">{d.hint}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </header>
 
         {/* Inputs */}
@@ -801,27 +826,40 @@ export default function CalculatorPage() {
           </div>
 
           <div className="mt-6 grid gap-6 md:grid-cols-[1fr_auto]">
-            <ul className="space-y-2">
-              {migration.lines.map((line) => (
-                <li
-                  key={line.label.en}
-                  className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-2 text-[12.5px]"
-                >
-                  <span>
-                    <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
-                    <span className="ml-1.5 text-[10.5px] text-[var(--text-muted)]">
-                      · {t(line.role)}
-                    </span>
-                  </span>
-                  <span className="tnum whitespace-nowrap font-medium">
-                    {line.days.toLocaleString(locale === "es" ? "es-MX" : "en-US", {
-                      maximumFractionDigits: 1,
-                    })}{" "}
-                    d · {usd(line.cost, locale)}
-                  </span>
-                </li>
+            <div className="space-y-5">
+              {[
+                { group: migration.technical, titleKey: "migrationTechnical" as const, hintKey: "migrationTechnicalHint" as const },
+                { group: migration.process, titleKey: "migrationProcess" as const, hintKey: "migrationProcessHint" as const },
+              ].map(({ group, titleKey, hintKey }) => (
+                <div key={titleKey}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    {t(CALC[titleKey])}
+                  </p>
+                  <p className="mt-0.5 text-[10.5px] text-[var(--text-muted)]">{t(CALC[hintKey])}</p>
+                  <ul className="mt-2 space-y-2">
+                    {group.map((line) => (
+                      <li
+                        key={line.label.en}
+                        className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] pb-2 text-[12.5px]"
+                      >
+                        <span>
+                          <span className="text-[var(--text-secondary)]">{t(line.label)}</span>
+                          <span className="ml-1.5 text-[10.5px] text-[var(--text-muted)]">
+                            · {t(line.role)}
+                          </span>
+                        </span>
+                        <span className="tnum whitespace-nowrap font-medium">
+                          {line.days.toLocaleString(locale === "es" ? "es-MX" : "en-US", {
+                            maximumFractionDigits: 1,
+                          })}{" "}
+                          d · {usd(line.cost, locale)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
 
             <div className="md:w-64">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">

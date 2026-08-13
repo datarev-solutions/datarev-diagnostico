@@ -265,7 +265,58 @@ describe("migration estimate", () => {
     const roles = new Set(m.lines.map((l) => l.roleKey));
     expect(roles).toEqual(new Set(["architect", "engineer", "analyst"]));
   });
+
+  it("prices process work — governance, training, PM — not just technical delivery", () => {
+    // The gap Dante flagged: a migration estimate that is only "gente
+    // building tecnología" undercounts by skipping governance, change
+    // management and coordination entirely.
+    const m = estimateMigration(DEFAULT_INPUTS);
+
+    expect(m.process.length).toBe(3);
+    expect(m.technical.length).toBe(4);
+    expect(m.lines.length).toBe(m.technical.length + m.process.length);
+    expect(new Set(m.lines.map((l) => l.category))).toEqual(
+      new Set(["technical", "process"]),
+    );
+
+    const governance = m.process.find((l) => l.label.en.includes("Governance"))!;
+    const training = m.process.find((l) => l.label.en.includes("training"))!;
+    const pm = m.process.find((l) => l.label.en.includes("coordination"))!;
+    expect(governance.days).toBeGreaterThan(0);
+    expect(training.days).toBeGreaterThan(0);
+    expect(pm.days).toBeGreaterThan(0);
+  });
+
+  it("scales governance with source count and training with headcount", () => {
+    const fewSources = estimateMigration(withInputs({ sources: 2 }));
+    const manySources = estimateMigration(withInputs({ sources: 30 }));
+    const govFew = fewSources.process.find((l) => l.label.en.includes("Governance"))!;
+    const govMany = manySources.process.find((l) => l.label.en.includes("Governance"))!;
+    expect(govMany.days).toBeGreaterThan(govFew.days);
+
+    const smallTeam = estimateMigration(withInputs({ viewers: 5, analysts: 1, creators: 1 }));
+    const bigTeam = estimateMigration(withInputs({ viewers: 900, analysts: 20, creators: 10 }));
+    const trainSmall = smallTeam.process.find((l) => l.label.en.includes("training"))!;
+    const trainBig = bigTeam.process.find((l) => l.label.en.includes("training"))!;
+    expect(trainBig.days).toBeGreaterThan(trainSmall.days);
+    // Training is capped — a 930-person rollout is not 15 days times bigger.
+    expect(trainBig.days).toBeLessThanOrEqual(MIGRATION.training.maxDays);
+  });
+
+  it("prices PM/coordination as a share of every other line's days", () => {
+    const m = estimateMigration(DEFAULT_INPUTS, { architect: 1000, engineer: 1000, analyst: 1000 });
+    const pm = m.process.find((l) => l.label.en.includes("coordination"))!;
+    const everythingElse = m.lines
+      .filter((l) => l !== pm)
+      .reduce((a, l) => a + l.days, 0);
+
+    expect(pm.days).toBeCloseTo(round2(everythingElse * MIGRATION.pmOverheadPct), 1);
+  });
 });
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 
 describe("engine matrix (all hosts together)", () => {
   it("returns three hosts, each with the three engines", () => {

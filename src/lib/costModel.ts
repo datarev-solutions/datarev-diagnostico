@@ -789,11 +789,13 @@ export function estimateEngines(
 // would otherwise type each field as its literal default (e.g. `1400`) and
 // reject any other number, including a value typed into the rate input.
 export type MigrationRates = Record<MigrationRole, number>;
+export type MigrationCategory = "technical" | "process";
 
 export interface MigrationLine {
   label: L;
   role: L;
   roleKey: MigrationRole;
+  category: MigrationCategory;
   days: number;
   rate: number;
   cost: number;
@@ -805,6 +807,9 @@ export interface MigrationEstimate {
   low: number;
   high: number;
   lines: MigrationLine[];
+  /** Same lines, split by what they buy — technical delivery vs. adoption. */
+  technical: MigrationLine[];
+  process: MigrationLine[];
 }
 
 const ROLE_LABEL: Record<MigrationRole, L> = {
@@ -817,11 +822,14 @@ const ROLE_LABEL: Record<MigrationRole, L> = {
  * One-time cost to land on any of these platforms, priced by who actually
  * does each piece of work rather than one flat day rate for everyone.
  *
- * Architecture and discovery is senior work (architect/lead rate). Source
- * integration and history backfill is hands-on pipeline work (engineer
- * rate). Rebuilding reports on the new semantic layer is BI work (analyst
- * rate) — and scales with `input.analysts` because that is literally who
- * signs off on "does this report match the old one."
+ * A project is gente + procesos + tecnología, not just "cloud bill + a pile
+ * of engineering days." This function prices the "gente" building the
+ * "tecnología" (technical delivery: discovery, integration, backfill,
+ * report rebuild) AND the "procesos" that make it actually get adopted
+ * (governance/security setup, change management and training, and the PM
+ * overhead of coordinating all of it). Skipping the process lines is the
+ * most common way a migration estimate comes in low — enterprise data
+ * projects commonly spend 15-25% of total effort there.
  *
  * Quoted as a range because a point estimate for migration work is always
  * wrong.
@@ -836,8 +844,16 @@ export function estimateMigration(
   );
   const sourceDays = input.sources * MIGRATION.perSourceDays;
   const reportDays = input.analysts * MIGRATION.perAnalystDays;
+  const totalUsers = input.viewers + input.analysts + input.creators;
 
-  const raw: { label: L; roleKey: MigrationRole; days: number }[] = [
+  const governanceDays =
+    MIGRATION.governance.baseDays + input.sources * MIGRATION.governance.daysPerSource;
+  const trainingDays = Math.min(
+    MIGRATION.training.maxDays,
+    MIGRATION.training.baseDays + totalUsers / MIGRATION.training.usersPerDay,
+  );
+
+  const technicalRaw: { label: L; roleKey: MigrationRole; days: number }[] = [
     {
       label: { es: "Descubrimiento y arquitectura", en: "Discovery and architecture" },
       roleKey: "architect",
@@ -860,24 +876,57 @@ export function estimateMigration(
     },
   ];
 
-  const lines: MigrationLine[] = raw.map((line) => {
-    const rate = rates[line.roleKey];
-    return {
-      ...line,
-      role: ROLE_LABEL[line.roleKey],
-      rate,
-      cost: round(line.days * rate),
-    };
+  const processRaw: { label: L; roleKey: MigrationRole; days: number }[] = [
+    {
+      label: { es: "Gobernanza y seguridad", en: "Governance and security" },
+      roleKey: "architect",
+      days: round(governanceDays),
+    },
+    {
+      label: { es: "Gestión del cambio y capacitación", en: "Change management and training" },
+      roleKey: "analyst",
+      days: round(trainingDays),
+    },
+  ];
+
+  // PM/coordination is priced last, as a share of every other line's days —
+  // it scales with the size of the whole engagement, not with any one task.
+  const preOverheadDays = [...technicalRaw, ...processRaw].reduce((a, l) => a + l.days, 0);
+  processRaw.push({
+    label: { es: "Gestión de proyecto y coordinación", en: "Project management and coordination" },
+    roleKey: "architect",
+    days: round(preOverheadDays * MIGRATION.pmOverheadPct),
   });
 
+  const cost = (line: { roleKey: MigrationRole; days: number }) =>
+    round(line.days * rates[line.roleKey]);
+
+  const technical: MigrationLine[] = technicalRaw.map((line) => ({
+    ...line,
+    category: "technical" as const,
+    role: ROLE_LABEL[line.roleKey],
+    rate: rates[line.roleKey],
+    cost: cost(line),
+  }));
+  const process: MigrationLine[] = processRaw.map((line) => ({
+    ...line,
+    category: "process" as const,
+    role: ROLE_LABEL[line.roleKey],
+    rate: rates[line.roleKey],
+    cost: cost(line),
+  }));
+
+  const lines = [...technical, ...process];
   const days = round(lines.reduce((a, l) => a + l.days, 0));
-  const cost = round(lines.reduce((a, l) => a + l.cost, 0));
+  const totalCost = round(lines.reduce((a, l) => a + l.cost, 0));
   return {
     days,
-    cost,
-    low: Math.round(cost * 0.8),
-    high: Math.round(cost * 1.4),
+    cost: totalCost,
+    low: Math.round(totalCost * 0.8),
+    high: Math.round(totalCost * 1.4),
     lines,
+    technical,
+    process,
   };
 }
 

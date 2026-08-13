@@ -3,11 +3,17 @@ import type { L } from "./framework";
 /** Copy for the cost calculator. Kept apart from UI so neither file sprawls. */
 export const CALC = {
   navLabel: { es: "Calculadora", en: "Calculator" },
-  title: { es: "Calculadora de costos de plataforma", en: "Platform cost calculator" },
+  title: { es: "Calculadora de costos de proyecto", en: "Project cost calculator" },
   lead: {
-    es: "Compara lo que costaría la misma carga de trabajo en cuatro arquitecturas. Ajusta los supuestos y los números se recalculan al instante.",
-    en: "Compare what the same workload would cost across four architectures. Adjust the assumptions and the numbers recalculate instantly.",
+    es: "No es sólo la factura de la nube. Un proyecto de datos cuesta tecnología (la plataforma, mes a mes), gente (quién la construye y quién la opera) y procesos (gobernanza, capacitación, coordinación). Ajusta los supuestos y los tres se recalculan al instante.",
+    en: "Not just the cloud bill. A data project costs technology (the platform, month to month), people (who builds it and who runs it) and process (governance, training, coordination). Adjust the assumptions and all three recalculate instantly.",
   },
+  dimTech: { es: "Tecnología", en: "Technology" },
+  dimTechHint: { es: "La plataforma, mes a mes", en: "The platform, month to month" },
+  dimPeople: { es: "Gente", en: "People" },
+  dimPeopleHint: { es: "Quién la construye y quién la opera", en: "Who builds it and who runs it" },
+  dimProcess: { es: "Procesos", en: "Process" },
+  dimProcessHint: { es: "Gobernanza, capacitación, coordinación", en: "Governance, training, coordination" },
 
   // Input groups
   inputsTitle: { es: "Tu situación actual", en: "Your current situation" },
@@ -133,6 +139,16 @@ export const CALC = {
   roleArchitect: { es: "Arquitecto / líder", en: "Architect / lead" },
   roleEngineer: { es: "Ingeniero de datos", en: "Data engineer" },
   roleAnalyst: { es: "Analista BI", en: "BI analyst" },
+  migrationTechnical: { es: "Entrega técnica", en: "Technical delivery" },
+  migrationTechnicalHint: {
+    es: "La gente que construye la tecnología",
+    en: "The people who build the technology",
+  },
+  migrationProcess: { es: "Procesos de adopción", en: "Adoption process" },
+  migrationProcessHint: {
+    es: "Lo que casi siempre se omite en una estimación — y por lo que suele salir baja",
+    en: "What almost always gets left out of an estimate — and why estimates come in low",
+  },
 
   ctaTitle: { es: "¿Quieres el número real?", en: "Want the real number?" },
   ctaLead: {
