@@ -5,8 +5,8 @@ export const CALC = {
   navLabel: { es: "Calculadora", en: "Calculator" },
   title: { es: "Calculadora de costos de proyecto", en: "Project cost calculator" },
   lead: {
-    es: "No es sólo la factura de la nube. Un proyecto de datos cuesta tecnología (la plataforma, mes a mes), gente (quién la construye y quién la opera) y procesos (gobernanza, capacitación, coordinación). Ajusta los supuestos y los tres se recalculan al instante.",
-    en: "Not just the cloud bill. A data project costs technology (the platform, month to month), people (who builds it and who runs it) and process (governance, training, coordination). Adjust the assumptions and all three recalculate instantly.",
+    es: "No es sólo la factura de la nube. Un proyecto de datos e IA cuesta tecnología (la plataforma, mes a mes), gente (quién la construye y quién la opera), procesos (gobernanza, capacitación, coordinación) e IA/agentes (diseño, desarrollo y despliegue). Ajusta los supuestos y los cuatro se recalculan al instante.",
+    en: "Not just the cloud bill. A data and AI project costs technology (the platform, month to month), people (who builds it and who runs it), process (governance, training, coordination) and AI/agents (design, development and deployment). Adjust the assumptions and all four recalculate instantly.",
   },
   dimTech: { es: "Tecnología", en: "Technology" },
   dimTechHint: { es: "La plataforma, mes a mes", en: "The platform, month to month" },
