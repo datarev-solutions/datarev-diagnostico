@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BROCHURE, DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
 import { CALC } from "@/lib/i18nCalc";
+import { UC } from "@/lib/i18nUseCases";
 import { useApp } from "./AppProvider";
 import { AccountChip } from "./AccountChip";
 
@@ -113,6 +114,7 @@ function Nav() {
 
   const tabs = [
     { href: "/", label: t(UI.appName), match: (p: string) => p === "/" || p.startsWith("/assessment") || p.startsWith("/results") },
+    { href: "/casos-de-uso", label: t(UC.navLabel), match: (p: string) => p.startsWith("/casos-de-uso") },
     { href: "/calculadora", label: t(CALC.navLabel), match: (p: string) => p.startsWith("/calculadora") },
   ];
 
