@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
 import type { MigrationRole } from "@/lib/cloudPricing";
 import { UC } from "@/lib/i18nUseCases";
+import { ACTOR_LABEL, actorsIn, RACI_LABEL, raciFor } from "@/lib/raci";
+import { useUseCaseSelection } from "@/lib/useCaseSelection";
 import {
   PROCESS_LABEL,
   quadrantOf,
@@ -166,22 +169,14 @@ function PriorityMatrix({
 
 export default function UseCasesPage() {
   const { t, locale } = useApp();
-  const [selectedIds, setSelectedIds] = useState<string[]>([
-    "fin-cockpit",
-    "cust-funnel",
-    "cust-churn",
-  ]);
+  // Shared with the calculator, so a selection made here changes the cost
+  // there without the user re-entering anything.
+  const { ids: selectedIds, selected, toggle, setAll } = useUseCaseSelection();
   const [months, setMonths] = useState(6);
   const [processFilter, setProcessFilter] = useState<ProcessType | "all">("all");
-
-  const toggle = (id: string) =>
-    setSelectedIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
-
-  const selected = useMemo(
-    () => USE_CASES.filter((u) => selectedIds.includes(u.id)),
-    [selectedIds],
-  );
   const roll = useMemo(() => rollUpUseCases(selected), [selected]);
+  const raciRows = useMemo(() => raciFor(selected), [selected]);
+  const raciActors = useMemo(() => actorsIn(raciRows), [raciRows]);
   const team = useMemo(() => teamComposition(roll.roleDays, months), [roll.roleDays, months]);
 
   const visible = useMemo(
@@ -233,6 +228,14 @@ export default function UseCasesPage() {
               </div>
             ))}
           </div>
+          {selected.length > 0 ? (
+            <Link
+              href="/calculadora"
+              className="no-print mt-4 inline-block text-[12px] font-semibold text-[var(--cyan)] underline-offset-4 hover:underline"
+            >
+              {t(UC.toCalculator)} →
+            </Link>
+          ) : null}
         </section>
 
         {/* Matrix */}
@@ -289,14 +292,14 @@ export default function UseCasesPage() {
               </select>
               <button
                 type="button"
-                onClick={() => setSelectedIds(USE_CASES.map((u) => u.id))}
+                onClick={() => setAll(USE_CASES.map((u) => u.id))}
                 className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
               >
                 {t(UC.selectAll)}
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedIds([])}
+                onClick={() => setAll([])}
                 className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
               >
                 {t(UC.clear)}
@@ -466,6 +469,99 @@ export default function UseCasesPage() {
             )}
           </section>
         </div>
+
+        {/* RACI */}
+        <section className="card card-lit avoid-break mt-6 p-6">
+          <h2 className="text-[15px] font-semibold tracking-tight">{t(UC.raciTitle)}</h2>
+          <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+            {t(UC.raciLead)}
+          </p>
+
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {(["R", "A", "C", "I"] as const).map((letter) => (
+              <li key={letter} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded-[3px] text-[9px] font-bold ${
+                    letter === "A"
+                      ? "bg-[var(--cyan)] text-[#04081f]"
+                      : letter === "R"
+                        ? "bg-[var(--accent)] text-white"
+                        : "border border-[var(--border-strong)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {letter}
+                </span>
+                {t(RACI_LABEL[letter])}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-[11.5px]">
+              <thead>
+                <tr>
+                  <th className="border-b border-[var(--border)] px-2 py-2 text-left font-semibold text-[var(--text-muted)]">
+                    {t(UC.raciActivity)}
+                  </th>
+                  {raciActors.map((a) => (
+                    <th
+                      key={a}
+                      className="border-b border-[var(--border)] px-1 py-2 text-center text-[9.5px] font-medium text-[var(--text-muted)]"
+                    >
+                      <span className="block max-w-[72px] leading-tight">{t(ACTOR_LABEL[a])}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {raciRows.map((row, i) => {
+                  const newPhase = i === 0 || raciRows[i - 1].phase.en !== row.phase.en;
+                  return (
+                    <tr key={row.id} className="border-b border-[var(--border)] last:border-0">
+                      <td className="px-2 py-2 align-top">
+                        {newPhase ? (
+                          <span className="mb-1 block text-[9.5px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+                            {t(row.phase)}
+                          </span>
+                        ) : null}
+                        <span className="block text-[var(--text-secondary)]">{t(row.activity)}</span>
+                        <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">
+                          {t(UC.raciDeliverable)}: {t(row.deliverable)}
+                        </span>
+                      </td>
+                      {raciActors.map((a) => {
+                        const letter = row.assignments[a];
+                        return (
+                          <td key={a} className="px-1 py-2 text-center align-top">
+                            {letter ? (
+                              <span
+                                className={`inline-flex h-5 w-5 items-center justify-center rounded-[3px] text-[10px] font-bold ${
+                                  letter === "A"
+                                    ? "bg-[var(--cyan)] text-[#04081f]"
+                                    : letter === "R"
+                                      ? "bg-[var(--accent)] text-white"
+                                      : "border border-[var(--border-strong)] text-[var(--text-muted)]"
+                                }`}
+                              >
+                                {letter}
+                              </span>
+                            ) : (
+                              <span className="text-[var(--border-strong)]">·</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-4 max-w-3xl text-[11px] leading-relaxed text-[var(--text-muted)]">
+            {t(UC.raciNote)}
+          </p>
+        </section>
 
         <section className="card avoid-break mt-6 p-5">
           <p className="text-[11.5px] leading-relaxed text-[var(--text-muted)]">{t(UC.caveat)}</p>

@@ -11,6 +11,7 @@ import {
   type MigrationRole,
 } from "./cloudPricing";
 import type { L } from "./framework";
+import { rollUpUseCases, type UseCase } from "./useCases";
 
 export type StackId = "oss" | "gcp" | "aws" | "azure";
 export type Refresh = "daily" | "hourly" | "realtime";
@@ -1004,6 +1005,55 @@ export function estimateAi(
 
   const days = round(lines.reduce((a, l) => a + l.days, 0));
   const cost = round(lines.reduce((a, l) => a + l.cost, 0));
+  return {
+    days,
+    cost,
+    low: Math.round(cost * 0.8),
+    high: Math.round(cost * 1.4),
+    lines,
+  };
+}
+
+/* ------------------------------------- delivery priced from the catalogue */
+
+/**
+ * Cost of building a specific, chosen set of use cases.
+ *
+ * Strictly better information than `estimateAi`'s generic
+ * "N use cases × constant days" formula, so the calculator swaps to this
+ * whenever the planner has a selection and falls back only when it does not.
+ * They are alternatives, never summed — a test asserts the calculator never
+ * counts both.
+ *
+ * Returns the same shape as `estimateAi` so the UI needs no special case.
+ */
+export function estimateFromUseCases(
+  selected: UseCase[],
+  rates: MigrationRates = MIGRATION.dayRates,
+): AiEstimate {
+  const roll = rollUpUseCases(selected);
+
+  const lines: MigrationLine[] = (
+    Object.entries(roll.roleDays) as [MigrationRole, number][]
+  )
+    .filter(([, days]) => days > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([roleKey, days]) => ({
+      label: {
+        es: `Construcción — ${ROLE_LABEL[roleKey].es}`,
+        en: `Build — ${ROLE_LABEL[roleKey].en}`,
+      },
+      role: ROLE_LABEL[roleKey],
+      roleKey,
+      category: "technical" as const,
+      days: round(days),
+      rate: rates[roleKey],
+      cost: round(days * rates[roleKey]),
+    }));
+
+  const days = round(lines.reduce((a, l) => a + l.days, 0));
+  const cost = round(lines.reduce((a, l) => a + l.cost, 0));
+
   return {
     days,
     cost,

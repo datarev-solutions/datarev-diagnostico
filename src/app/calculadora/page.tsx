@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
@@ -17,6 +18,7 @@ import {
   DEFAULT_INPUTS,
   estimateAi,
   estimateAll,
+  estimateFromUseCases,
   estimateEngineMatrix,
   estimateEngines,
   estimateMigration,
@@ -34,6 +36,7 @@ import {
 } from "@/lib/costModel";
 import type { L } from "@/lib/framework";
 import { CALC } from "@/lib/i18nCalc";
+import { useUseCaseSelection } from "@/lib/useCaseSelection";
 
 const HOST_LABELS: Record<HostCloud, string> = {
   gcp: "GCP",
@@ -420,6 +423,7 @@ export default function CalculatorPage() {
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
   const [host, setHost] = useState<HostCloud>("aws");
   const [rates, setRates] = useState<MigrationRates>({ ...MIGRATION.dayRates });
+  const { selected: plannerSelection } = useUseCaseSelection();
   const [selected, setSelected] = useState<ProjectDimension[]>([
     "tech",
     "people",
@@ -446,7 +450,16 @@ export default function CalculatorPage() {
   );
   const engineMatrix = useMemo(() => estimateEngineMatrix(input, dataGb), [input, dataGb]);
   const migration = useMemo(() => estimateMigration(input, rates), [input, rates]);
-  const ai = useMemo(() => estimateAi(input, rates), [input, rates]);
+  // The catalogue is strictly better information than the generic
+  // "N use cases x constant days" formula, so it replaces it when present.
+  // Never both — that would double-count the same build work.
+  const ai = useMemo(
+    () =>
+      plannerSelection.length > 0
+        ? estimateFromUseCases(plannerSelection, rates)
+        : estimateAi(input, rates),
+    [plannerSelection, input, rates],
+  );
 
   // Defaults to the cheapest stack so the summary shows a number immediately,
   // but a consultant can pin a specific platform to answer "what if we go
@@ -1060,6 +1073,29 @@ export default function CalculatorPage() {
                 {t(CALC.aiLead)}
               </p>
             </div>
+          </div>
+
+          {/* Where this number came from. Without saying so, a consultant
+              cannot tell whether they are looking at the generic formula or
+              the client's actual chosen scope. */}
+          <div
+            className={`mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border px-3.5 py-2.5 text-[11.5px] leading-relaxed ${
+              plannerSelection.length > 0
+                ? "border-[var(--cyan)]/40 bg-[var(--surface-2)] text-[var(--text-secondary)]"
+                : "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)]"
+            }`}
+          >
+            <span>
+              {plannerSelection.length > 0
+                ? t(CALC.aiFromPlanner).replace("{n}", String(plannerSelection.length))
+                : t(CALC.aiGenericNotice)}
+            </span>
+            <Link
+              href="/casos-de-uso"
+              className="no-print font-semibold text-[var(--cyan)] underline-offset-4 hover:underline"
+            >
+              {t(CALC.aiOpenPlanner)} →
+            </Link>
           </div>
 
           <div className="no-print mt-5 grid gap-3 sm:grid-cols-2">

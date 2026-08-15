@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { AI_IMPLEMENTATION, AZURE, MIGRATION } from "./cloudPricing";
+import { rollUpUseCases, USE_CASES } from "./useCases";
 import {
   DEFAULT_INPUTS,
   estimateAi,
   estimateAll,
+  estimateFromUseCases,
   estimateEngineMatrix,
   estimateEngines,
   estimateMigration,
@@ -463,6 +465,67 @@ describe("project totals (the four selectable dimensions)", () => {
       expect(t.oneTime).toBe(all.reduce((a, d) => a + Math.round(totals[d].oneTime), 0));
       expect(t.firstYear).toBe(t.oneTime + t.monthly * 12);
     }
+  });
+});
+
+describe("catalogue-driven delivery (planner feeding the calculator)", () => {
+  const picks = USE_CASES.filter((u) =>
+    ["fin-cockpit", "cust-churn", "cust-support-agent"].includes(u.id),
+  );
+
+  it("prices exactly the role-days the catalogue says, at the shared rates", () => {
+    const est = estimateFromUseCases(picks);
+    const roll = rollUpUseCases(picks);
+
+    expect(est.days).toBeCloseTo(roll.totalDays, 1);
+    for (const line of est.lines) {
+      expect(line.cost).toBeCloseTo(line.days * MIGRATION.dayRates[line.roleKey], 1);
+    }
+  });
+
+  it("is an alternative to estimateAi, never additive", () => {
+    // The calculator swaps one for the other. If a future edit ever summed
+    // them, the same build work would be billed twice — this pins the intent.
+    const fromCatalogue = estimateFromUseCases(picks);
+    const generic = estimateAi(withInputs({ aiUseCases: picks.length }));
+
+    expect(fromCatalogue.cost).toBeGreaterThan(0);
+    expect(generic.cost).toBeGreaterThan(0);
+    // Different methods, so they must not coincidentally be equal — that
+    // would hide a swap that silently did nothing.
+    expect(fromCatalogue.cost).not.toBe(generic.cost);
+  });
+
+  it("distinguishes a dashboard from an agent, which the generic formula cannot", () => {
+    // The whole reason the planner exists.
+    const dashboard = estimateFromUseCases(USE_CASES.filter((u) => u.id === "fin-budget"));
+    const agent = estimateFromUseCases(
+      USE_CASES.filter((u) => u.id === "cust-support-agent"),
+    );
+
+    expect(agent.cost).toBeGreaterThan(dashboard.cost);
+    // And they draw on different people, not just more of the same.
+    expect(agent.lines.some((l) => l.roleKey === "fde")).toBe(true);
+    expect(dashboard.lines.some((l) => l.roleKey === "fde")).toBe(false);
+  });
+
+  it("returns zero for an empty selection so the caller can fall back", () => {
+    const est = estimateFromUseCases([]);
+    expect(est.cost).toBe(0);
+    expect(est.days).toBe(0);
+    expect(est.lines).toEqual([]);
+  });
+
+  it("respects edited day rates", () => {
+    const cheap = estimateFromUseCases(picks, {
+      architect: 100,
+      engineer: 100,
+      analyst: 100,
+      mlEngineer: 100,
+      fde: 100,
+    });
+    const roll = rollUpUseCases(picks);
+    expect(cheap.cost).toBeCloseTo(roll.totalDays * 100, 0);
   });
 });
 

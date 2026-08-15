@@ -192,6 +192,15 @@ export const CALC = {
     en: "How many distinct agents need designing, building and deploying. Cost scales with this, not with data volume.",
   },
   aiDays: { es: "días de consultoría", en: "consulting days" },
+  aiFromPlanner: {
+    es: "Calculado desde {n} casos de uso que elegiste en el planeador, no con la fórmula genérica. Los días salen del catálogo, rol por rol.",
+    en: "Calculated from the {n} use cases you picked in the planner, not the generic formula. Days come from the catalogue, role by role.",
+  },
+  aiGenericNotice: {
+    es: "Estimación genérica por número de casos. Elige casos concretos en el planeador y esta sección usará sus días reales.",
+    en: "Generic estimate by case count. Pick concrete cases in the planner and this section will use their real day counts.",
+  },
+  aiOpenPlanner: { es: "Abrir planeador", en: "Open planner" },
 
   ctaTitle: { es: "¿Quieres el número real?", en: "Want the real number?" },
   ctaLead: {

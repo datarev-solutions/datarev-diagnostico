@@ -73,6 +73,20 @@ export const UC = {
   avgImpact: { es: "Impacto promedio", en: "Average impact" },
   avgDifficulty: { es: "Dificultad promedio", en: "Average difficulty" },
   caseCount: { es: "Casos de uso", en: "Use cases" },
+  toCalculator: { es: "Ver el costo de esta selección", en: "See what this selection costs" },
+
+  // RACI
+  raciTitle: { es: "Mapeo de procesos y responsabilidades", en: "Process and responsibility mapping" },
+  raciLead: {
+    es: "Qué actividades dispara tu selección y quién responde por cada una. Sólo aparecen los actores que realmente participan.",
+    en: "Which activities your selection triggers, and who answers for each. Only actors that actually take part appear.",
+  },
+  raciActivity: { es: "Actividad", en: "Activity" },
+  raciDeliverable: { es: "Entregable", en: "Deliverable" },
+  raciNote: {
+    es: "Un solo aprobador (A) por actividad — es la regla que hace útil a RACI. Las decisiones de encuadre, validación y capacitación son del cliente, no de DataRev: un proyecto se atora cuando el dueño del proceso sólo está informado de lo que sólo él puede decidir.",
+    en: "Exactly one Accountable (A) per activity — the rule that makes RACI useful. Framing, acceptance and training decisions belong to the client, not DataRev: a project stalls when the process owner is merely informed of calls only they can make.",
+  },
 
   caveat: {
     es: "Los días por rol son supuestos de DataRev calibrados contra normas de industria, no mediciones. Un alcance real se dimensiona midiendo, no estimando — esto sirve para estructurar la conversación.",
