@@ -10,13 +10,17 @@ import { UC } from "@/lib/i18nUseCases";
 import { ACTOR_LABEL, actorsIn, RACI_LABEL, raciFor } from "@/lib/raci";
 import { useUseCaseSelection } from "@/lib/useCaseSelection";
 import {
+  DEPARTMENT_LABEL,
+  forIndustry,
+  INDUSTRY_LABEL,
   PROCESS_LABEL,
   quadrantOf,
   rollUpUseCases,
   TECH_LABEL,
   teamComposition,
   TIER_LABEL,
-  USE_CASES,
+  type Department,
+  type Industry,
   type ProcessType,
   type UseCase,
 } from "@/lib/useCases";
@@ -30,6 +34,13 @@ const ROLE_LABEL: Record<MigrationRole, { es: string; en: string }> = {
 };
 
 const PROCESS_ORDER: ProcessType[] = ["finance", "customer", "operations", "product", "h2r"];
+
+// Derived from the label records so a new industry or department cannot be
+// added to the catalogue and silently go missing from the filters.
+// 'cross' is excluded: those cases show up under every industry already, so
+// offering it beside "All industries" would only be confusing.
+const INDUSTRY_ORDER = (Object.keys(INDUSTRY_LABEL) as Industry[]).filter((i) => i !== "cross");
+const DEPARTMENT_ORDER = Object.keys(DEPARTMENT_LABEL) as Department[];
 
 const num = (n: number, locale: string) =>
   new Intl.NumberFormat(locale === "es" ? "es-MX" : "en-US", {
@@ -174,15 +185,31 @@ export default function UseCasesPage() {
   const { ids: selectedIds, selected, toggle, setAll } = useUseCaseSelection();
   const [months, setMonths] = useState(6);
   const [processFilter, setProcessFilter] = useState<ProcessType | "all">("all");
+  const [industryFilter, setIndustryFilter] = useState<Industry | "all">("all");
+  const [departmentFilter, setDepartmentFilter] = useState<Department | "all">("all");
   const roll = useMemo(() => rollUpUseCases(selected), [selected]);
   const raciRows = useMemo(() => raciFor(selected), [selected]);
   const raciActors = useMemo(() => actorsIn(raciRows), [raciRows]);
   const team = useMemo(() => teamComposition(roll.roleDays, months), [roll.roleDays, months]);
 
+  // Industry first — forIndustry keeps cross-industry cases in every filter,
+  // so a banking view still shows the executive cockpit.
   const visible = useMemo(
-    () => (processFilter === "all" ? USE_CASES : USE_CASES.filter((u) => u.process === processFilter)),
-    [processFilter],
+    () =>
+      forIndustry(industryFilter).filter(
+        (u) =>
+          (processFilter === "all" || u.process === processFilter) &&
+          (departmentFilter === "all" || u.department === departmentFilter),
+      ),
+    [industryFilter, processFilter, departmentFilter],
   );
+
+  // The matrix mirrors the filters, plus anything already selected: a dot that
+  // is driving the totals below must never be hidden by a filter change.
+  const plotted = useMemo(() => {
+    const ids = new Set(visible.map((u) => u.id));
+    return [...visible, ...selected.filter((u) => !ids.has(u.id))];
+  }, [visible, selected]);
 
   const grouped = useMemo(() => {
     const map = new Map<ProcessType, UseCase[]>();
@@ -208,6 +235,9 @@ export default function UseCasesPage() {
           </p>
           <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-[var(--text-muted)]">
             {t(UC.method)}
+          </p>
+          <p className="mt-2 max-w-3xl border-l-2 border-[var(--border-strong)] pl-3 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+            {t(UC.provenance)}
           </p>
         </header>
 
@@ -259,7 +289,7 @@ export default function UseCasesPage() {
           </ul>
           <div className="mt-3">
             <PriorityMatrix
-              cases={USE_CASES}
+              cases={plotted}
               selectedIds={selectedIds}
               onToggle={toggle}
               locale={locale}
@@ -279,6 +309,33 @@ export default function UseCasesPage() {
             </h2>
             <div className="no-print flex flex-wrap items-center gap-2">
               <select
+                aria-label={t(UC.filterIndustry)}
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value as Industry | "all")}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)]"
+              >
+                <option value="all">{t(UC.filterIndustryAll)}</option>
+                {INDUSTRY_ORDER.map((i) => (
+                  <option key={i} value={i}>
+                    {t(INDUSTRY_LABEL[i])}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label={t(UC.filterDepartment)}
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value as Department | "all")}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)]"
+              >
+                <option value="all">{t(UC.filterDepartmentAll)}</option>
+                {DEPARTMENT_ORDER.map((d) => (
+                  <option key={d} value={d}>
+                    {t(DEPARTMENT_LABEL[d])}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label={t(UC.filterProcess)}
                 value={processFilter}
                 onChange={(e) => setProcessFilter(e.target.value as ProcessType | "all")}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)]"
@@ -292,7 +349,7 @@ export default function UseCasesPage() {
               </select>
               <button
                 type="button"
-                onClick={() => setAll(USE_CASES.map((u) => u.id))}
+                onClick={() => setAll(visible.map((u) => u.id))}
                 className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
               >
                 {t(UC.selectAll)}
@@ -308,6 +365,11 @@ export default function UseCasesPage() {
           </div>
 
           <div className="mt-5 space-y-6">
+            {grouped.size === 0 ? (
+              <p className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-[12.5px] text-[var(--text-muted)]">
+                {t(UC.noMatches)}
+              </p>
+            ) : null}
             {[...grouped.entries()].map(([process, list]) => (
               <div key={process}>
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
@@ -357,6 +419,24 @@ export default function UseCasesPage() {
                               </span>
                               <span className="mt-0.5 block text-[10.5px] text-[var(--text-muted)]">
                                 {t(uc.activity)} · {t(TIER_LABEL[uc.tier])}
+                              </span>
+                              <span className="mt-1.5 flex flex-wrap gap-1">
+                                <span className="rounded border border-[var(--border)] px-1.5 py-px text-[9.5px] font-medium text-[var(--text-secondary)]">
+                                  {t(DEPARTMENT_LABEL[uc.department])}
+                                </span>
+                                {/* Only sector-specific cases earn an industry tag —
+                                    stamping "Any industry" on two thirds of the
+                                    catalogue would be noise, not information. */}
+                                {uc.industries.includes("cross")
+                                  ? null
+                                  : uc.industries.map((ind) => (
+                                      <span
+                                        key={ind}
+                                        className="rounded border border-[var(--border)] px-1.5 py-px text-[9.5px] font-medium text-[var(--text-muted)]"
+                                      >
+                                        {t(INDUSTRY_LABEL[ind])}
+                                      </span>
+                                    ))}
                               </span>
                             </span>
                           </div>

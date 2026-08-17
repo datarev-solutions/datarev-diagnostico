@@ -23,6 +23,20 @@ export const UC = {
   kbqLabel: { es: "Pregunta clave", en: "Key question" },
   kpiLabel: { es: "Métrica", en: "Metric" },
   filterAll: { es: "Todos los procesos", en: "All processes" },
+  filterIndustry: { es: "Industria", en: "Industry" },
+  filterIndustryAll: { es: "Todas las industrias", en: "All industries" },
+  filterDepartment: { es: "Departamento", en: "Department" },
+  filterDepartmentAll: { es: "Todos los departamentos", en: "All departments" },
+  filterProcess: { es: "Proceso", en: "Process" },
+  noMatches: {
+    es: "Ningún caso de uso coincide con estos filtros. Prueba con menos restricciones.",
+    en: "No use case matches these filters. Try loosening them.",
+  },
+  crossBadge: { es: "Cualquier industria", en: "Any industry" },
+  provenance: {
+    es: "La estructura (Proceso → Actividad → Caso de uso → KBQ → Métrica, con puntaje de dificultad e impacto) es la metodología de DataRev. Los casos concretos, sus puntajes y sus días por rol están redactados aquí y calibrados contra normas de industria — no salen de un estudio publicado ni del histórico de proyectos de DataRev todavía.",
+    en: "The structure (Process → Activity → Use case → KBQ → Metric, scored on difficulty and impact) is DataRev's own methodology. The individual cases, their scores and their per-role day counts are authored here and calibrated to industry norms — they do not come from a published study or from DataRev's own delivery history yet.",
+  },
 
   // Matrix
   matrixTitle: { es: "Matriz de priorización", en: "Prioritisation matrix" },

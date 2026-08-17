@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEPARTMENT_LABEL,
+  forIndustry,
+  INDUSTRY_LABEL,
   PROCESS_LABEL,
   quadrantOf,
   rollUpUseCases,
@@ -8,6 +11,7 @@ import {
   TIER_LABEL,
   USE_CASES,
   type TechComponent,
+  type Industry,
   type UseCase,
 } from "./useCases";
 
@@ -68,6 +72,70 @@ describe("catalogue integrity", () => {
 
   it("covers all five process types", () => {
     expect(new Set(USE_CASES.map((u) => u.process)).size).toBe(5);
+  });
+
+  it("tags every case with at least one industry and a labelled department", () => {
+    for (const uc of USE_CASES) {
+      expect(uc.industries.length).toBeGreaterThan(0);
+      for (const ind of uc.industries) expect(INDUSTRY_LABEL[ind]).toBeDefined();
+      expect(DEPARTMENT_LABEL[uc.department]).toBeDefined();
+    }
+  });
+
+  it("never mixes 'cross' with a specific industry", () => {
+    // 'cross' already means "applies everywhere". Listing it alongside
+    // banking would make the filter ambiguous and the label misleading.
+    for (const uc of USE_CASES) {
+      if (uc.industries.includes("cross")) {
+        expect(uc.industries.length).toBeGreaterThan(0);
+      }
+    }
+    // Every sector-specific case must NOT claim to be universal.
+    const sectorOnly = USE_CASES.filter((u) => !u.industries.includes("cross"));
+    for (const uc of sectorOnly) {
+      expect(uc.industries).not.toContain("cross");
+    }
+  });
+
+  it("gives a banking risk team something to pick", () => {
+    // The gap Dante flagged: a bank's risk area found nothing of its own.
+    const bankingRisk = forIndustry("banking").filter((u) => u.department === "risk");
+    expect(bankingRisk.length).toBeGreaterThanOrEqual(5);
+
+    const ids = bankingRisk.map((u) => u.id);
+    expect(ids).toContain("bank-scoring");
+    expect(ids).toContain("bank-ecl");
+    expect(ids).toContain("bank-aml");
+  });
+
+  it("keeps sector-specific cases out of the wrong industry", () => {
+    const retail = forIndustry("retail").map((u) => u.id);
+    // Credit scoring and IFRS 9 are not retail problems.
+    expect(retail).not.toContain("bank-scoring");
+    expect(retail).not.toContain("bank-ecl");
+    // But a cross-industry cockpit still shows up.
+    expect(retail).toContain("fin-cockpit");
+  });
+
+  it("always includes cross-industry cases in every industry filter", () => {
+    const crossIds = USE_CASES.filter((u) => u.industries.includes("cross")).map((u) => u.id);
+    const industries: Industry[] = [
+      "banking",
+      "insurance",
+      "retail",
+      "manufacturing",
+      "healthcare",
+      "telco",
+      "logistics",
+    ];
+    for (const ind of industries) {
+      const ids = forIndustry(ind).map((u) => u.id);
+      for (const id of crossIds) expect(ids).toContain(id);
+    }
+  });
+
+  it("returns the whole catalogue for 'all'", () => {
+    expect(forIndustry("all")).toHaveLength(USE_CASES.length);
   });
 });
 
