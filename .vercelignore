@@ -1,0 +1,10 @@
+# Vercel builds from source; shipping local build output makes the upload
+# enormous (a local `next build` leaves ~450 MB in .next) and was hanging the
+# CLI mid-upload with no error message.
+.next
+node_modules
+.git
+
+# Growth strategy, budget and revenue assumptions. Never served, and no reason
+# to push them to a build host.
+docs
