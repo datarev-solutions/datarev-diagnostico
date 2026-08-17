@@ -1,4 +1,4 @@
-import type { MigrationRole } from "./cloudPricing";
+import { ROLE_LABEL, type MigrationRole } from "./cloudPricing";
 import type { L } from "./framework";
 import type { TechComponent, UseCase } from "./useCases";
 
@@ -21,12 +21,21 @@ export type RaciLetter = "R" | "A" | "C" | "I";
 /** Everyone who appears in the chart: DataRev's delivery team plus the client's. */
 export type Actor = MigrationRole | "businessOwner" | "dataSteward" | "itSecurity" | "endUser";
 
+/** Delivery roles reuse the rate card's labels, tagged with whose payroll they
+ * sit on. Spelling a role differently here than in the team panel would read as
+ * two different people. */
+const DELIVERY_ACTORS = Object.fromEntries(
+  (Object.keys(ROLE_LABEL) as MigrationRole[]).map((r) => [
+    r,
+    {
+      es: `${ROLE_LABEL[r].es} (DataRev)`,
+      en: `${ROLE_LABEL[r].en} (DataRev)`,
+    },
+  ]),
+) as Record<MigrationRole, L>;
+
 export const ACTOR_LABEL: Record<Actor, L> = {
-  architect: { es: "Arquitecto / líder (DataRev)", en: "Architect / lead (DataRev)" },
-  engineer: { es: "Ingeniero de datos (DataRev)", en: "Data engineer (DataRev)" },
-  analyst: { es: "Analista BI (DataRev)", en: "BI analyst (DataRev)" },
-  mlEngineer: { es: "ML Engineer (DataRev)", en: "ML Engineer (DataRev)" },
-  fde: { es: "Forward Deployed AI Eng. (DataRev)", en: "Forward Deployed AI Eng. (DataRev)" },
+  ...DELIVERY_ACTORS,
   businessOwner: { es: "Dueño del proceso (cliente)", en: "Process owner (client)" },
   dataSteward: { es: "Data steward (cliente)", en: "Data steward (client)" },
   itSecurity: { es: "TI / Seguridad (cliente)", en: "IT / Security (client)" },

@@ -11,6 +11,7 @@ import {
   PRICING_SOURCES,
   PROVENANCE,
   REGION_NOTE,
+  ROLE_LABEL,
   type MigrationRole,
   type Provenance,
 } from "@/lib/cloudPricing";
@@ -54,18 +55,10 @@ const DIMENSIONS: { id: ProjectDimension; label: L; hint: L }[] = [
   { id: "ai", label: CALC.dimAi, hint: CALC.dimAiHint },
 ];
 
+/* The roles these two estimators actually price. Labels come from the rate card
+ * so the calculator and the planner never spell a role differently. */
 const ROLE_ORDER: MigrationRole[] = ["architect", "engineer", "analyst"];
 const AI_ROLE_ORDER: MigrationRole[] = ["mlEngineer", "fde"];
-const ROLE_LABEL_KEY: Record<
-  MigrationRole,
-  "roleArchitect" | "roleEngineer" | "roleAnalyst" | "roleMlEngineer" | "roleFde"
-> = {
-  architect: "roleArchitect",
-  engineer: "roleEngineer",
-  analyst: "roleAnalyst",
-  mlEngineer: "roleMlEngineer",
-  fde: "roleFde",
-};
 
 /**
  * Provenance badges. Green for what the vendor publishes, amber for what we
@@ -990,7 +983,7 @@ export default function CalculatorPage() {
             {ROLE_ORDER.map((role) => (
               <label key={role} className="block">
                 <span className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
-                  {t(CALC[ROLE_LABEL_KEY[role]])} · {t(CALC.migrationRates)}
+                  {t(ROLE_LABEL[role])} · {t(CALC.migrationRates)}
                 </span>
                 <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2">
                   <span className="text-[12px] text-[var(--text-muted)]">$</span>
@@ -1102,7 +1095,7 @@ export default function CalculatorPage() {
             {AI_ROLE_ORDER.map((role) => (
               <label key={role} className="block">
                 <span className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
-                  {t(CALC[ROLE_LABEL_KEY[role]])} · {t(CALC.migrationRates)}
+                  {t(ROLE_LABEL[role])} · {t(CALC.migrationRates)}
                 </span>
                 <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2">
                   <span className="text-[12px] text-[var(--text-muted)]">$</span>

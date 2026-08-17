@@ -34,8 +34,8 @@ export const UC = {
   },
   crossBadge: { es: "Cualquier industria", en: "Any industry" },
   provenance: {
-    es: "La estructura (Proceso → Actividad → Caso de uso → KBQ → Métrica, con puntaje de dificultad e impacto) es la metodología de DataRev. Los casos concretos, sus puntajes y sus días por rol están redactados aquí y calibrados contra normas de industria — no salen de un estudio publicado ni del histórico de proyectos de DataRev todavía.",
-    en: "The structure (Process → Activity → Use case → KBQ → Metric, scored on difficulty and impact) is DataRev's own methodology. The individual cases, their scores and their per-role day counts are authored here and calibrated to industry norms — they do not come from a published study or from DataRev's own delivery history yet.",
+    es: "La estructura (Proceso → Actividad → Caso de uso → KBQ → Métrica) es la metodología de DataRev. Los casos concretos y sus días por rol están redactados aquí, no salen del histórico de proyectos de DataRev. El puntaje base también, pero los ajustes por industria y por tipo de trabajo vienen de estudios publicados y fechados, listados al final de esta página.",
+    en: "The structure (Process → Activity → Use case → KBQ → Metric) is DataRev's own methodology. The individual cases and their per-role day counts are authored here; they do not come from DataRev's delivery history. The base score too — but the adjustments by industry and by kind of work come from dated, published studies, listed at the foot of this page.",
   },
 
   // Matrix
@@ -100,6 +100,43 @@ export const UC = {
   raciNote: {
     es: "Un solo aprobador (A) por actividad — es la regla que hace útil a RACI. Las decisiones de encuadre, validación y capacitación son del cliente, no de DataRev: un proyecto se atora cuando el dueño del proceso sólo está informado de lo que sólo él puede decidir.",
     en: "Exactly one Accountable (A) per activity — the rule that makes RACI useful. Framing, acceptance and training decisions belong to the client, not DataRev: a project stalls when the process owner is merely informed of calls only they can make.",
+  },
+
+  // Roster (team + stack), auto-derived with manual override
+  resetAuto: { es: "Volver a la selección automática", en: "Back to automatic selection" },
+  removeSeat: { es: "Quitar del equipo", en: "Remove from team" },
+  addSeat: { es: "Agregar un perfil que tu organización necesite y no se dedujo:", en: "Add a profile your organization needs that was not inferred:" },
+  owns: { es: "Responsable de", en: "Owns" },
+  removeLayer: { es: "Quitar", en: "Remove" },
+  addLayer: { es: "Agregar una capa que tu arquitectura necesite:", en: "Add a layer your architecture needs:" },
+  ownedBy: { es: "Lo construye", en: "Built by" },
+  layers: { es: "capas", en: "layers" },
+  stackNote: {
+    es: "Estructura según el MAD Landscape 2025 (FirstMark), la undécima edición del mapa del ecosistema de datos e IA. Los proveedores son ilustrativos de cada capa, no recomendaciones ni una lista exhaustiva.",
+    en: "Structure follows the 2025 MAD Landscape (FirstMark), the eleventh edition of the data and AI ecosystem map. Vendors illustrate each layer; they are neither recommendations nor an exhaustive list.",
+  },
+
+  // Industry lens on the scores
+  lensTitle: { es: "Puntajes ajustados por industria", en: "Scores adjusted by industry" },
+  lensLead: {
+    es: "El mismo caso de uso no vale lo mismo en todas las industrias. El puntaje base del catálogo se ajusta con datos publicados: lo que cada industria realmente prioriza y las tasas de falla documentadas del trabajo generativo y agéntico.",
+    en: "The same use case is not worth the same everywhere. The catalogue's base score is adjusted with published data: what each industry actually prioritises, and the documented failure rates of generative and agentic work.",
+  },
+  lensInactive: {
+    es: "Elige una industria arriba para ver los puntajes ajustados a su realidad. Sin industria seleccionada se muestran los puntajes base del catálogo, sin ajuste.",
+    en: "Pick an industry above to see scores adjusted to its reality. With no industry selected the catalogue's base scores are shown, unadjusted.",
+  },
+  baseScore: { es: "base", en: "base" },
+  adjusted: { es: "ajustado", en: "adjusted" },
+  evidenceTitle: { es: "De dónde salen estos números", en: "Where these numbers come from" },
+  evidenceLead: {
+    es: "Cada ajuste de puntaje viene de trabajo publicado y fechado. Nada de esto es histórico de proyectos de DataRev — ese dato todavía no existe — y no se usan estudios anteriores a 2025: los índices de madurez de 2022 y la frase de que “87% de los modelos nunca llegan a producción” son previos a la IA generativa en producción y valuarían mal cualquier caso agéntico.",
+    en: "Every score adjustment comes from dated, published work. None of it is DataRev's own delivery history — that data does not exist yet — and nothing published before 2025 is used: the 2022-era maturity indices and the “87% of models never reach production” line predate generative AI in production and would misprice any agentic case.",
+  },
+  readinessTitle: { es: "Por qué el plan trae gobierno, seguridad y adopción", en: "Why the plan carries governance, security and adoption" },
+  readinessLead: {
+    es: "No son líneas de relleno. Son las brechas que Cisco midió en 8,039 organizaciones y la razón por la que un proyecto técnicamente correcto no entrega valor.",
+    en: "These are not filler lines. They are the gaps Cisco measured across 8,039 organizations, and the reason a technically sound project still fails to deliver value.",
   },
 
   caveat: {

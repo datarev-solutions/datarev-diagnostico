@@ -7,6 +7,7 @@ import {
   MIGRATION,
   OPS_HOURS,
   OSS,
+  ROLE_LABEL,
   SNOWFLAKE,
   type MigrationRole,
 } from "./cloudPricing";
@@ -817,13 +818,9 @@ export interface MigrationEstimate {
   process: MigrationLine[];
 }
 
-const ROLE_LABEL: Record<MigrationRole, L> = {
-  architect: { es: "Arquitecto / líder técnico", en: "Architect / tech lead" },
-  engineer: { es: "Ingeniero de datos", en: "Data engineer" },
-  analyst: { es: "Analista BI", en: "BI analyst" },
-  mlEngineer: { es: "ML Engineer", en: "ML Engineer" },
-  fde: { es: "Forward Deployed AI Engineer", en: "Forward Deployed AI Engineer" },
-};
+/* Labels live with the rate card so the planner and the calculator name a role
+ * identically — two spellings of "ML Engineer" across two screens reads as two
+ * different people. */
 
 /**
  * One-time cost to land on any of these platforms, priced by who actually

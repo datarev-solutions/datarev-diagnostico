@@ -18,6 +18,7 @@ import {
   sizeDatabricksWarehouse,
   sizeSnowflakeWarehouse,
   type CostInputs,
+  type MigrationRates,
 } from "./costModel";
 
 const withInputs = (patch: Partial<CostInputs>): CostInputs => ({
@@ -27,6 +28,12 @@ const withInputs = (patch: Partial<CostInputs>): CostInputs => ({
 
 const stack = (input: CostInputs, id: string, dataGb?: number) =>
   estimateAll(input, dataGb).find((s) => s.id === id)!;
+
+// One rate for every role, so a test asserting on days is not silently
+// asserting on the rate card too. Module scope: several suites need it.
+const FLAT_RATES = Object.fromEntries(
+  Object.keys(MIGRATION.dayRates).map((r) => [r, 900]),
+) as MigrationRates;
 
 describe("derived volumes", () => {
   it("counts reprocessing, not just growth, in monthly ingest", () => {
@@ -226,8 +233,6 @@ describe("portable engines", () => {
 });
 
 describe("migration estimate", () => {
-  const FLAT_RATES = { architect: 900, engineer: 900, analyst: 900, mlEngineer: 900, fde: 900 };
-
   it("returns a range, never a point estimate", () => {
     const m = estimateMigration(DEFAULT_INPUTS, FLAT_RATES);
 
@@ -311,6 +316,7 @@ describe("migration estimate", () => {
 
   it("prices PM/coordination as a share of every other line's days", () => {
     const m = estimateMigration(DEFAULT_INPUTS, {
+      ...FLAT_RATES,
       architect: 1000,
       engineer: 1000,
       analyst: 1000,
@@ -518,6 +524,7 @@ describe("catalogue-driven delivery (planner feeding the calculator)", () => {
 
   it("respects edited day rates", () => {
     const cheap = estimateFromUseCases(picks, {
+      ...FLAT_RATES,
       architect: 100,
       engineer: 100,
       analyst: 100,

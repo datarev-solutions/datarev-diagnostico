@@ -324,13 +324,34 @@ export const MIGRATION = {
    * not two unrelated ones. Forward Deployed is priced highest: it is the
    * embedded, client-facing technical role DataRev's own deck lists as a
    * premium GenAI service, not a standard engineering seat.
+   *
+   * The roster is deliberately wider than "builders and analysts". A real data
+   * and AI office splits into architecture, engineering, governance and
+   * quality, business intelligence, and data science with MLOps — and the
+   * decision of which profile does the work turns on what the work is:
+   * designing storage and access is an architect, modelling data for insight is
+   * an analyst or scientist, building production systems is an ML engineer, and
+   * client-facing delivery of those systems is the Forward Deployed engineer.
+   *
+   * governanceLead, securityEngineer, productManager and changeManager are the
+   * seats an engineering-only estimate omits and a real project cannot: Cisco's
+   * 2025 index finds only 31% of organizations feel capable of securing agentic
+   * systems and only a third have a formal change-management plan, which is
+   * where the value leaks out of a technically sound build.
    */
   dayRates: {
     architect: 1400,
     engineer: 900,
+    analyticsEngineer: 800,
     analyst: 650,
+    scientist: 1050,
     mlEngineer: 1100,
+    mlopsEngineer: 1150,
     fde: 1500,
+    governanceLead: 950,
+    securityEngineer: 1200,
+    productManager: 1000,
+    changeManager: 850,
   },
   /**
    * The project is not only "gente building tecnología" — it also needs
@@ -370,6 +391,93 @@ export const AI_IMPLEMENTATION = {
 } as const;
 
 export type MigrationRole = keyof typeof MIGRATION.dayRates;
+
+/**
+ * Display order: the sequence a real data and AI office is drawn in — direction
+ * and product first, then the data platform, then analytics, then ML, then the
+ * generative and agentic seats, then the two that cut across everything.
+ */
+export const ROLE_ORDER: MigrationRole[] = [
+  "productManager",
+  "architect",
+  "engineer",
+  "analyticsEngineer",
+  "analyst",
+  "scientist",
+  "mlEngineer",
+  "mlopsEngineer",
+  "fde",
+  "governanceLead",
+  "securityEngineer",
+  "changeManager",
+];
+
+export const ROLE_LABEL: Record<MigrationRole, L> = {
+  productManager: { es: "Product Manager de datos", en: "Data product manager" },
+  architect: { es: "Arquitecto / líder técnico", en: "Architect / tech lead" },
+  engineer: { es: "Ingeniero de datos", en: "Data engineer" },
+  analyticsEngineer: { es: "Analytics Engineer", en: "Analytics engineer" },
+  analyst: { es: "Analista BI", en: "BI analyst" },
+  scientist: { es: "Científico de datos", en: "Data scientist" },
+  mlEngineer: { es: "ML Engineer", en: "ML engineer" },
+  mlopsEngineer: { es: "MLOps / Platform Engineer", en: "MLOps / platform engineer" },
+  fde: { es: "Forward Deployed AI Engineer", en: "Forward Deployed AI Engineer" },
+  governanceLead: { es: "Líder de gobierno y calidad", en: "Governance and quality lead" },
+  securityEngineer: { es: "Seguridad y privacidad de IA", en: "AI security and privacy" },
+  changeManager: { es: "Gestión del cambio y adopción", en: "Change management and adoption" },
+};
+
+/** One line on why this seat exists — shown when the role is auto-selected. */
+export const ROLE_PURPOSE: Record<MigrationRole, L> = {
+  productManager: {
+    es: "Sostiene el alcance y la secuencia. Sin este rol el backlog lo define quien grita más fuerte.",
+    en: "Holds scope and sequencing. Without it the backlog is set by whoever shouts loudest.",
+  },
+  architect: {
+    es: "Diseña el almacenamiento, el acceso y las fronteras del sistema. Se activa cuando hay que decidir dónde viven los datos.",
+    en: "Designs storage, access and system boundaries. Triggered when where the data lives is still an open question.",
+  },
+  engineer: {
+    es: "Construye las tuberías: ingesta, integración y las cargas que corren solas.",
+    en: "Builds the pipes: ingestion, integration and the loads that run unattended.",
+  },
+  analyticsEngineer: {
+    es: "Convierte tablas crudas en modelos confiables y probados. El rol que más ha crecido en los equipos de datos modernos.",
+    en: "Turns raw tables into tested, trustworthy models. The fastest-growing seat on modern data teams.",
+  },
+  analyst: {
+    es: "Traduce el modelo en una respuesta que el negocio usa el lunes.",
+    en: "Turns the model into an answer the business uses on Monday.",
+  },
+  scientist: {
+    es: "Modela para extraer patrones. Se activa cuando el caso es predictivo o prescriptivo, no descriptivo.",
+    en: "Models to extract patterns. Triggered when the case is predictive or prescriptive, not descriptive.",
+  },
+  mlEngineer: {
+    es: "Lleva el modelo a un sistema de producción con latencia y disponibilidad comprometidas.",
+    en: "Takes the model into a production system with committed latency and availability.",
+  },
+  mlopsEngineer: {
+    es: "Sostiene el modelo después del lanzamiento: despliegue, monitoreo, deriva y reversión.",
+    en: "Keeps the model alive after launch: deployment, monitoring, drift and rollback.",
+  },
+  fde: {
+    es: "Ingeniero embebido con el cliente. Se activa en casos generativos y agénticos, donde el problema se redefine cada semana.",
+    en: "Engineer embedded with the client. Triggered on generative and agentic cases, where the problem gets redefined weekly.",
+  },
+  governanceLead: {
+    es: "Catálogo, linaje, calidad y política de acceso. Cisco 2025: sólo 51% tiene sus datos centralizados.",
+    en: "Catalog, lineage, quality and access policy. Cisco 2025: only 51% have their data centralized.",
+  },
+  securityEngineer: {
+    es: "Inyección de prompts, fuga de datos y permisos de agentes. Cisco 2025: sólo 31% se siente capaz de asegurar sistemas agénticos.",
+    en: "Prompt injection, data leakage and agent permissions. Cisco 2025: only 31% feel capable of securing agentic systems.",
+  },
+  changeManager: {
+    es: "Que la gente efectivamente lo use. Cisco 2025: sólo un tercio tiene un plan formal de gestión del cambio.",
+    en: "Making people actually use it. Cisco 2025: only a third have a formal change-management plan.",
+  },
+};
 
 /* ------------------------------------------------------- SHARED / OPS */
 
