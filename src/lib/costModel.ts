@@ -882,13 +882,13 @@ export function estimateMigration(
 
   const processRaw: { label: L; roleKey: MigrationRole; days: number }[] = [
     {
-      label: { es: "Gobernanza y seguridad", en: "Governance and security" },
-      roleKey: "architect",
+      label: { es: "Gobernanza, calidad y acceso", en: "Governance, quality and access" },
+      roleKey: "governanceLead",
       days: round(governanceDays),
     },
     {
       label: { es: "Gestión del cambio y capacitación", en: "Change management and training" },
-      roleKey: "analyst",
+      roleKey: "changeManager",
       days: round(trainingDays),
     },
   ];
@@ -898,7 +898,7 @@ export function estimateMigration(
   const preOverheadDays = [...technicalRaw, ...processRaw].reduce((a, l) => a + l.days, 0);
   processRaw.push({
     label: { es: "Gestión de proyecto y coordinación", en: "Project management and coordination" },
-    roleKey: "architect",
+    roleKey: "productManager",
     days: round(preOverheadDays * MIGRATION.pmOverheadPct),
   });
 
@@ -974,7 +974,7 @@ export function estimateAi(
       days: round(useCases * AI_IMPLEMENTATION.build.daysPerUseCase),
     },
     {
-      label: { es: "Evaluación, guardrails y seguridad", en: "Evaluation, guardrails and safety" },
+      label: { es: "Evaluación y guardarraíles", en: "Evaluation and guardrails" },
       roleKey: "mlEngineer",
       days: round(AI_IMPLEMENTATION.evaluation.baseDays + useCases * AI_IMPLEMENTATION.evaluation.daysPerUseCase),
     },

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
+import { HeadcountPanel } from "@/components/HeadcountPanel";
 import {
   MIGRATION,
   PRICING_CHECKED,
@@ -414,6 +415,9 @@ export default function CalculatorPage() {
   const [input, setInput] = useState<CostInputs>(DEFAULT_INPUTS);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
+  // Delivery window for the headcount panel: days become people only once you
+  // say over how long. Same default as the planner so the two agree.
+  const [months, setMonths] = useState(6);
   const [host, setHost] = useState<HostCloud>("aws");
   const [rates, setRates] = useState<MigrationRates>({ ...MIGRATION.dayRates });
   const { selected: plannerSelection } = useUseCaseSelection();
@@ -635,6 +639,20 @@ export default function CalculatorPage() {
             </>
           )}
         </section>
+
+        {/* Who builds it. Only the dimensions actually included in the quote
+            contribute — a project with the AI dimension switched off must not
+            staff an ML engineer. */}
+        <HeadcountPanel
+          lines={[
+            ...(selected.includes("people") ? migration.technical : []),
+            ...(selected.includes("process") ? migration.process : []),
+            ...(selected.includes("ai") ? ai.lines : []),
+          ]}
+          months={months}
+          onMonths={setMonths}
+          locale={locale}
+        />
 
         {/* Inputs */}
         <section className="card card-lit no-print mb-8 p-6">

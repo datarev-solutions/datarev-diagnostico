@@ -72,6 +72,28 @@ export const CALC = {
     es: "casos de uso seleccionados en el planeador",
     en: "use cases selected in the planner",
   },
+  // Headcount — who actually builds this
+  headcountTitle: { es: "Quién lo va a desarrollar", en: "Who will build it" },
+  headcountLead: {
+    es: "El equipo que exige esta cotización, convertido en personas. Sale de las mismas líneas que producen el costo, así que no puede contradecirlo.",
+    en: "The team this quote demands, turned into people. Derived from the same lines that produce the cost, so the two cannot contradict each other.",
+  },
+  headcountWindow: { es: "Ventana de entrega", en: "Delivery window" },
+  headcountMonths: { es: "meses", en: "months" },
+  headcountRole: { es: "Perfil", en: "Role" },
+  headcountPeople: { es: "Personas", en: "People" },
+  headcountDays: { es: "Días-persona", en: "Person-days" },
+  headcountCost: { es: "Costo", en: "Cost" },
+  headcountTotal: { es: "Total", en: "Total" },
+  headcountEmpty: {
+    es: "Apaga y prende los rubros de arriba para ver el equipo que cada uno exige.",
+    en: "Toggle the dimensions above to see the team each one demands.",
+  },
+  headcountNote: {
+    es: "Redondeado hacia arriba: medio ingeniero no se presenta el lunes. Acortar la ventana de entrega no baja los días-persona, sube el número de personas — y con él el costo de coordinación. Los perfiles se activan solos según lo que la cotización incluya: un proyecto sin IA no trae ML Engineer ni Forward Deployed.",
+    en: "Rounded up: half an engineer does not show up on Monday. Shortening the window does not reduce person-days, it raises headcount — and with it the cost of coordination. Roles activate on their own according to what the quote includes: a project with no AI carries neither an ML engineer nor a Forward Deployed one.",
+  },
+
   derivedFromOne: {
     es: "caso de uso seleccionado en el planeador",
     en: "use case selected in the planner",

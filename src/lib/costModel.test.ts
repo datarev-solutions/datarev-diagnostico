@@ -302,7 +302,31 @@ describe("migration estimate", () => {
   it("only counts a discipline if some line actually uses it", () => {
     const m = estimateMigration(DEFAULT_INPUTS);
     const roles = new Set(m.lines.map((l) => l.roleKey));
-    expect(roles).toEqual(new Set(["architect", "engineer", "analyst"]));
+    expect(roles).toEqual(
+      new Set([
+        "architect",
+        "engineer",
+        "analyst",
+        "governanceLead",
+        "changeManager",
+        "productManager",
+      ]),
+    );
+  });
+
+  it("books process work to the people who actually do it", () => {
+    // Was wrong until the roster grew past five roles: governance and project
+    // management were both billed as "architect" and change management as
+    // "analyst", so the calculator could never answer "how many PMs?" — it did
+    // not track one. It also mispriced, an architect day costing 1400 against
+    // a PM's 1000.
+    const m = estimateMigration(DEFAULT_INPUTS);
+    const roleOf = (fragment: string) =>
+      m.process.find((l) => l.label.en.includes(fragment))!.roleKey;
+
+    expect(roleOf("Governance")).toBe("governanceLead");
+    expect(roleOf("Change management")).toBe("changeManager");
+    expect(roleOf("Project management")).toBe("productManager");
   });
 
   it("prices process work — governance, training, PM — not just technical delivery", () => {
