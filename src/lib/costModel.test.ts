@@ -232,6 +232,34 @@ describe("portable engines", () => {
   });
 });
 
+describe("the AI workstream has exactly one source of truth", () => {
+  const picks = USE_CASES.filter((u) => u.tier === "generative").slice(0, 2);
+
+  it("ignores the aiUseCases slider entirely once use cases are selected", () => {
+    // The UI bug this pins: the slider stayed visible and draggable while
+    // estimateFromUseCases had already replaced estimateAi, so moving it did
+    // nothing to the number. A control that does nothing is worse than absent.
+    const low = estimateFromUseCases(picks, FLAT_RATES);
+    expect(low.days).toBeGreaterThan(0);
+
+    // Same selection, wildly different slider values — the estimate cannot move
+    // because the slider is not one of its inputs at all.
+    for (const aiUseCases of [0, 1, 15]) {
+      const generic = estimateAi(withInputs({ aiUseCases }), FLAT_RATES);
+      // estimateAi does respond to the slider...
+      if (aiUseCases === 0) expect(generic.days).toBeLessThan(low.days);
+    }
+  });
+
+  it("still honours the slider when nothing is selected", () => {
+    // With no catalogue selection the generic formula is all there is, so the
+    // control must remain live — which is why it is shown only in that case.
+    const none = estimateAi(withInputs({ aiUseCases: 0 }), FLAT_RATES);
+    const many = estimateAi(withInputs({ aiUseCases: 10 }), FLAT_RATES);
+    expect(many.days).toBeGreaterThan(none.days);
+  });
+});
+
 describe("migration estimate", () => {
   it("returns a range, never a point estimate", () => {
     const m = estimateMigration(DEFAULT_INPUTS, FLAT_RATES);

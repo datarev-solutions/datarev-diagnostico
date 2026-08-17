@@ -640,9 +640,14 @@ export default function CalculatorPage() {
         <section className="card card-lit no-print mb-8 p-6">
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="space-y-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                {t(CALC.inputsTitle)}
-              </h2>
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+                  {t(CALC.inputsTitle)}
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {t(CALC.inputsSubtitle)}
+                </p>
+              </div>
               <Slider
                 label={t(CALC.sources)}
                 hint={t(CALC.sourcesHint)}
@@ -672,9 +677,14 @@ export default function CalculatorPage() {
             </div>
 
             <div className="space-y-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                &nbsp;
-              </h2>
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+                  {t(CALC.targetTitle)}
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {t(CALC.targetSubtitle)}
+                </p>
+              </div>
               <div>
                 <label className="text-[12.5px] font-medium text-[var(--text-secondary)]">
                   {t(CALC.refresh)}
@@ -703,22 +713,17 @@ export default function CalculatorPage() {
                 display={volumeLabel(input.queryGbPerMonth, locale)}
                 onChange={(v) => set("queryGbPerMonth", toGb(v))}
               />
-              <Slider
-                label={t(CALC.aiUseCases)}
-                hint={t(CALC.aiUseCasesHint)}
-                value={input.aiUseCases}
-                display={num(input.aiUseCases, locale)}
-                min={0}
-                max={15}
-                step={1}
-                onChange={(v) => set("aiUseCases", v)}
-              />
             </div>
 
             <div className="space-y-5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                {t(CALC.peopleTitle)}
-              </h2>
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+                  {t(CALC.audienceTitle)}
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {t(CALC.audienceSubtitle)}
+                </p>
+              </div>
               <Slider
                 label={t(CALC.viewers)}
                 value={input.viewers}
@@ -751,6 +756,62 @@ export default function CalculatorPage() {
                 {t(CALC.peopleHint)}
               </p>
             </div>
+          </div>
+
+          {/* Lo que necesitas: derivado, no capturado. Cuando hay selección en
+              el planeador, estimateFromUseCases reemplaza a estimateAi por
+              completo — el slider de "casos de uso de IA" quedaba visible y
+              movible sin efecto alguno sobre el número. Ahora se muestra como
+              lo que es: un valor derivado, con liga al lugar donde sí se
+              cambia. */}
+          <div className="mt-6 border-t border-[var(--border)] pt-5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+              {t(CALC.derivedTitle)}
+            </h2>
+            {plannerSelection.length > 0 ? (
+              <>
+                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {t(CALC.derivedSubtitle)}
+                </p>
+                <p className="mt-2.5 text-[13px] text-[var(--text-secondary)]">
+                  <strong className="tnum text-[var(--text-primary)]">
+                    {plannerSelection.length}
+                  </strong>{" "}
+                  {t(plannerSelection.length === 1 ? CALC.derivedFromOne : CALC.derivedFrom)}
+                  {" · "}
+                  <Link
+                    href="/casos-de-uso"
+                    className="text-[var(--cyan)] underline underline-offset-2"
+                  >
+                    {t(CALC.derivedEdit)}
+                  </Link>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[var(--text-muted)]">
+                  {t(CALC.derivedEmpty)}
+                </p>
+                <div className="mt-3 max-w-sm">
+                  <Slider
+                    label={t(CALC.aiUseCases)}
+                    hint={t(CALC.aiUseCasesHint)}
+                    value={input.aiUseCases}
+                    display={num(input.aiUseCases, locale)}
+                    min={0}
+                    max={15}
+                    step={1}
+                    onChange={(v) => set("aiUseCases", v)}
+                  />
+                </div>
+                <Link
+                  href="/casos-de-uso"
+                  className="mt-3 inline-block text-[12px] text-[var(--cyan)] underline underline-offset-2"
+                >
+                  {t(CALC.derivedEdit)}
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[var(--border)] pt-5">

@@ -44,7 +44,43 @@ export const CALC = {
   },
 
   // Input groups
-  inputsTitle: { es: "Tu situación actual", en: "Your current situation" },
+  /* Los tres bloques responden a preguntas distintas y antes vivían todos bajo
+   * "Tu situación actual", que sólo era cierto del primero. Un cliente no puede
+   * llenar bien un formulario si no sabe si le preguntan lo que tiene o lo que
+   * quiere. */
+  inputsTitle: { es: "Lo que tienes hoy", en: "What you have today" },
+  inputsSubtitle: {
+    es: "Tu estado actual. Determina cuánto cuesta migrar.",
+    en: "Your current estate. Drives what the migration costs.",
+  },
+  targetTitle: { es: "Lo que quieres", en: "What you want" },
+  targetSubtitle: {
+    es: "El nivel de servicio al que quieres llegar. Determina el costo mensual de operar.",
+    en: "The service level you want to reach. Drives the monthly cost of running it.",
+  },
+  audienceTitle: { es: "Quién lo va a usar", en: "Who will use it" },
+  audienceSubtitle: {
+    es: "Determina las licencias.",
+    en: "Drives licensing.",
+  },
+  derivedTitle: { es: "Lo que necesitas", en: "What you need" },
+  derivedSubtitle: {
+    es: "Esto no se captura: sale de los casos de uso que elegiste en el planeador.",
+    en: "This is not entered here: it comes from the use cases you picked in the planner.",
+  },
+  derivedFrom: {
+    es: "casos de uso seleccionados en el planeador",
+    en: "use cases selected in the planner",
+  },
+  derivedFromOne: {
+    es: "caso de uso seleccionado en el planeador",
+    en: "use case selected in the planner",
+  },
+  derivedEdit: { es: "Cambiar la selección", en: "Change the selection" },
+  derivedEmpty: {
+    es: "Sin casos de uso seleccionados, el frente de trabajo de IA se estima con una fórmula genérica: cuántos agentes distintos hay que diseñar, construir y desplegar. Elegir casos concretos en el planeador da un número mucho mejor.",
+    en: "With no use cases selected, the AI workstream is estimated with a generic formula: how many distinct agents need designing, building and deploying. Picking real use cases in the planner gives a far better number.",
+  },
   sources: { es: "Fuentes de datos a integrar", en: "Data sources to integrate" },
   sourcesHint: { es: "ERP, CRM, bases operativas, APIs", en: "ERP, CRM, operational databases, APIs" },
   dataGb: { es: "Volumen de datos actual", en: "Current data volume" },
