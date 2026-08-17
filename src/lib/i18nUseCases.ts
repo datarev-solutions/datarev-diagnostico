@@ -38,6 +38,23 @@ export const UC = {
     en: "The structure (Process → Activity → Use case → KBQ → Metric) is DataRev's own methodology. The individual cases and their per-role day counts are authored here; they do not come from DataRev's delivery history. The base score too — but the adjustments by industry and by kind of work come from dated, published studies, listed at the foot of this page.",
   },
 
+  // Top processes for the chosen industry + department
+  processesTitle: { es: "Procesos de tu industria y departamento", en: "Processes for your industry and department" },
+  processesLead: {
+    es: "Una empresa corre miles de procesos; el catálogo de arriba sólo cubre los que ya tienen un caso de uso construido. Esto es lo primero, antes de lo segundo: los procesos reales de la industria y el departamento que elegiste, con el caso de uso marcado cuando ya existe.",
+    en: "A real company runs thousands of processes; the catalogue above only covers the ones with a built use case. This comes first: the actual processes for the industry and department you picked, with the use case flagged where one already exists.",
+  },
+  processesEmpty: {
+    es: "Elige una industria o un departamento arriba para ver sus procesos.",
+    en: "Pick an industry or a department above to see its processes.",
+  },
+  processesHasCase: { es: "Ya tiene caso de uso", en: "Already has a use case" },
+  processesNoCase: { es: "Sin caso de uso todavía", en: "No use case yet" },
+  processesProvenance: {
+    es: "La categoría es de APQC Process Classification Framework (PCF), el estándar público de clasificación de procesos entre industrias desde 1992. Sólo las 13 categorías de primer nivel son públicas — la lista detallada de subprocesos es un recurso pagado de APQC al que no tenemos acceso. Los procesos específicos de cada departamento están redactados aquí, informados por esas categorías y por la metodología de DataRev, no transcritos de APQC.",
+    en: "The category comes from APQC's Process Classification Framework (PCF), the public cross-industry standard for process taxonomy since 1992. Only the 13 top-level categories are public — APQC's detailed sub-process list is a paid resource we do not have access to. The specific processes per department are authored here, informed by those categories and by DataRev's own methodology, not transcribed from APQC.",
+  },
+
   // Matrix
   matrixTitle: { es: "Matriz de priorización", en: "Prioritisation matrix" },
   matrixLead: {

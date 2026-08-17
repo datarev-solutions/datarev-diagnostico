@@ -8,6 +8,7 @@ import { ConsultCTA } from "@/components/ConsultCTA";
 import { StackPanel } from "@/components/StackPanel";
 import { TeamPanel } from "@/components/TeamPanel";
 import { SOURCE_BY_ID, SOURCES, READINESS_GAPS } from "@/lib/evidence";
+import { APQC_CATEGORY, topProcesses } from "@/lib/processes";
 import { quadrantOfScored, scoreFor } from "@/lib/useCaseScoring";
 import { expandStack } from "@/lib/stack";
 import { UC } from "@/lib/i18nUseCases";
@@ -20,6 +21,7 @@ import {
   PROCESS_LABEL,
   rollUpUseCases,
   TIER_LABEL,
+  USE_CASES,
   type Department,
   type Industry,
   type ProcessType,
@@ -328,6 +330,72 @@ export default function UseCasesPage() {
             />
           </div>
         </section>
+
+        {/* Real processes for the chosen industry + department — not the same
+            thing as the catalogue below. The catalogue only covers the ~36
+            processes DataRev has authored a use case for; a real company runs
+            thousands more. This shows the department's actual process
+            landscape first, with the built case flagged when one exists. */}
+        {(industryFilter !== "all" || departmentFilter !== "all") && (
+          <section className="card card-lit avoid-break mb-6 p-6">
+            <h2 className="text-[15px] font-semibold tracking-tight">
+              {t(UC.processesTitle)}
+            </h2>
+            <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+              {t(UC.processesLead)}
+            </p>
+
+            {topProcesses(industryFilter, departmentFilter, 10).length === 0 ? (
+              <p className="mt-4 text-[12.5px] text-[var(--text-muted)]">
+                {t(UC.processesEmpty)}
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-2.5 lg:grid-cols-2">
+                {topProcesses(industryFilter, departmentFilter, 10).map((p) => {
+                  const linked = p.linkedUseCaseId
+                    ? USE_CASES.find((u) => u.id === p.linkedUseCaseId)
+                    : undefined;
+                  return (
+                    <li
+                      key={p.id}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                          {t(p.name)}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            linked
+                              ? "bg-[var(--cyan)] text-[#04081f]"
+                              : "border border-[var(--border-strong)] text-[var(--text-muted)]"
+                          }`}
+                        >
+                          {linked ? t(UC.processesHasCase) : t(UC.processesNoCase)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10.5px] uppercase tracking-wider text-[var(--text-muted)]">
+                        {APQC_CATEGORY[p.department].code} · {t(APQC_CATEGORY[p.department].name)}
+                      </p>
+                      <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--text-secondary)]">
+                        {t(p.what)}
+                      </p>
+                      {linked ? (
+                        <p className="mt-2 text-[10.5px] text-[var(--cyan)]">
+                          → {t(linked.name)}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <p className="mt-4 max-w-3xl text-[10.5px] leading-relaxed text-[var(--text-muted)]">
+              {t(UC.processesProvenance)}
+            </p>
+          </section>
+        )}
 
         {/* Catalogue */}
         <section className="card card-lit avoid-break mb-6 p-6">
