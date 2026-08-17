@@ -73,17 +73,12 @@ export const SOURCES: Source[] = [
     },
     url: "https://www.mattturck.com/mad2025",
   },
-  {
-    id: "synq2025",
-    org: "SYNQ (Mikkel Dengsøe)",
-    title: "How top data teams are structured",
-    published: "2025",
-    basis: {
-      es: "Benchmark de composición de cientos de equipos de datos: mediana 46% roles de insights (analistas y científicos), 43% ingeniería de datos, 11% machine learning.",
-      en: "Composition benchmark across hundreds of data teams: median 46% insights roles (analysts and scientists), 43% data engineering, 11% machine learning.",
-    },
-    url: "https://www.synq.io/blog/data-team-composition",
-  },
+  /* Deliberately NOT listed: SYNQ's data-team composition benchmark (46%
+   * insights / 43% engineering / 11% ML across 40 teams). It is a useful sanity
+   * check on the shape of the roster, but it was published in July 2024 and
+   * drives no number in this model. Listing it would either break the
+   * post-2025 rule above or force us to weaken it — and that rule is what
+   * protects the claims that do move the scores. */
   {
     id: "deloitte2026",
     org: "Deloitte",

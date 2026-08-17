@@ -5,6 +5,7 @@ import {
   impactTilt,
   INDUSTRY_TO_CISCO,
   LEGACY_DRAG,
+  READINESS_GAPS,
   SOURCES,
   SOURCE_BY_ID,
   TIER_EVIDENCE,
@@ -32,6 +33,36 @@ describe("published evidence", () => {
       expect(s.url).toMatch(/^https:\/\//);
       expect(s.published).toMatch(/^\d{4}(-\d{2})?(-\d{2})?$/);
     }
+  });
+
+  it("points every citation at a specific document, not a site root", () => {
+    // A source that resolves to a homepage is not a citation. (One listed URL
+    // 404'd on first check — the SYNQ benchmark — and was removed rather than
+    // shipped broken in front of a client.)
+    for (const s of SOURCES) {
+      const url = new URL(s.url);
+      expect(url.pathname.length, s.id).toBeGreaterThan(1);
+    }
+  });
+
+  it("uses every source it lists", () => {
+    // A source nobody cites is decoration. Each one must be referenced by an
+    // adjustment or by the readiness panel.
+    const cited = new Set<string>([
+      ...USE_CASES.flatMap((uc) =>
+        INDUSTRIES.flatMap((ind) =>
+          [...scoreFor(uc, ind).impactAdjustments, ...scoreFor(uc, ind).difficultyAdjustments]
+            .map((a) => a.sourceId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ),
+      ...READINESS_GAPS.map((g) => g.sourceId),
+      // Cited in prose rather than by a numeric adjustment.
+      "mad2025",
+      "deloitte2026",
+    ]);
+
+    for (const s of SOURCES) expect([...cited], s.id).toContain(s.id);
   });
 
   it("cites only current work — nothing published before 2025", () => {
