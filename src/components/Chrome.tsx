@@ -146,9 +146,13 @@ export function Header() {
     <header className="no-print sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-0)]/85 backdrop-blur">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between gap-4 px-5">
         <div className="flex items-center gap-3">
-          <Link href="/">
+          {/* The wordmark goes to the marketing site, not this app's own
+              landing page — same destination as the footer's "visit site"
+              link, just reachable from the one place a visitor always looks
+              first. */}
+          <a href={DATAREV.site}>
             <DataRevLogo className="h-12" />
-          </Link>
+          </a>
           <span className="hidden h-6 w-px bg-[var(--border)] sm:block" />
           <Nav />
         </div>

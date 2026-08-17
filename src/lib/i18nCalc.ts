@@ -268,4 +268,85 @@ export const CALC = {
 
   reset: { es: "Restablecer supuestos", en: "Reset assumptions" },
   print: { es: "Descargar PDF", en: "Download PDF" },
+
+  // Top-level Calculator Navigation Tabs
+  tabCloudData: { es: "Plataforma Data & Cloud", en: "Data & Cloud Platform" },
+  tabLlmToken: { es: "Costo de Tokens LLM", en: "LLM Token Cost" },
+
+  // LLM Calculator Sub-tabs
+  tabCalc: { es: "Calculadora de costo", en: "Cost calculator" },
+  tabLab: { es: "Laboratorio Asignación 1.1", en: "Assignment 1.1 lab" },
+
+  // LLM Calculator General
+  llmTitle: { es: "Calculadora de costo de tokens LLM", en: "LLM token cost calculator" },
+  llmSubtitle: {
+    es: "Compara costos de API en los principales 10 modelos frontier según tu carga de trabajo: tokens de entrada/salida, volumen de solicitudes y tasa de aciertos de caché.",
+    en: "Compare API costs across top 10 frontier AI models by workload: input/output tokens, request volume, and cache hit rate.",
+  },
+  workloadPresets: { es: "Presets de carga:", en: "Workload presets:" },
+  presetChatbot: { es: "Chatbot", en: "Chatbot" },
+  presetRag: { es: "Document RAG", en: "Document RAG" },
+  presetCoding: { es: "Agente de código", en: "Coding agent" },
+  presetBatch: { es: "Resumen por lotes", en: "Batch summarization" },
+
+  // Sliders
+  inputTokensLabel: { es: "Tokens de entrada por solicitud", en: "Input tokens per request" },
+  outputTokensLabel: { es: "Tokens de salida por solicitud", en: "Output tokens per request" },
+  requestsPerMonthLabel: { es: "Solicitudes por mes", en: "Requests per month" },
+  cacheHitRateLabel: { es: "Tasa de acierto en caché", en: "Cache hit rate" },
+
+  // Sizing from real interaction
+  sizeFromInteraction: { es: "O calcula desde una interacción real — los sliders siguen a tu texto", en: "Or size it from a real interaction — both sliders follow your text" },
+  popularPrompts: { es: "Prompts populares:", en: "Popular prompts:" },
+  promptInputLabel: { es: "Entrada — el prompt", en: "Input — the prompt" },
+  promptInputPlaceholder: { es: "Pega o escribe el prompt que enviarían tus usuarios…", en: "Paste or write the prompt your users would send…" },
+  responseOutputLabel: { es: "Salida — la respuesta del modelo", en: "Output — the model's answer" },
+  responseOutputPlaceholder: { es: "Pega la respuesta que dio el modelo…", en: "Paste the answer the model gave…" },
+
+  // Stat summary cards
+  statCheapest: { es: "Más económico", en: "Cheapest" },
+  statMostExpensive: { es: "Más costoso", en: "Most expensive" },
+  statPriceSpread: { es: "Diferencia de precio", en: "Price spread" },
+  statSpreadSub: { es: "más barato vs. más costoso para esta carga", en: "cheapest vs. priciest for this workload" },
+  statBestValue: { es: "Mejor valor, ajustado", en: "Best value, adjusted" },
+  statLargestContext: { es: "Mayor contexto", en: "Largest context" },
+  statFastest: { es: "Más rápido", en: "Fastest" },
+
+  // Model comparison table
+  modelComparisonTitle: { es: "Comparativa de modelos", en: "Model comparison" },
+  rankByLabel: { es: "Ordenar por:", en: "Rank by:" },
+  rankMonthlyCost: { es: "Costo mensual", en: "Monthly cost" },
+  rankEfficiencyAdj: { es: "Ajustado por eficiencia", en: "Efficiency-adjusted" },
+  rankContextWindow: { es: "Ventana de contexto", en: "Context window" },
+  rankSpeed: { es: "Velocidad", en: "Speed" },
+
+  colModel: { es: "Modelo", en: "Model" },
+  colContext: { es: "Contexto", en: "Context" },
+  colInputPrice: { es: "Entrada $/1M", en: "Input $/1M" },
+  colCachedPrice: { es: "Caché $/1M", en: "Cached $/1M" },
+  colOutputPrice: { es: "Salida $/1M", en: "Output $/1M" },
+  colSpeed: { es: "Velocidad (t/s)", en: "Speed (t/s)" },
+  colOverhead: { es: "Overhead", en: "Overhead" },
+  colCostMonth: { es: "Costo / mes", en: "Cost / month" },
+
+  badgeCheapest: { es: "más barato", en: "cheapest" },
+  badgeBestValue: { es: "mejor valor", en: "best value" },
+  badgeLargestContext: { es: "mayor contexto", en: "largest context" },
+  badgeFastest: { es: "más rápido", en: "fastest" },
+
+  // Lab assignment 1.1
+  labTitle: { es: "Asignación 1.1 — Evaluación del costo de sistemas de IA", en: "Assignment 1.1 — Evaluating the cost of AI systems" },
+  labLead: {
+    es: "Una fracción de centavo por interacción parece inofensiva hasta que la multiplicas por un millón de usuarios. Este laboratorio combina un tokenizador y una calculadora de precios para 10 modelos.",
+    en: "A fraction of a cent per interaction sounds harmless — until you multiply it by a million users. This lab combines a tokenizer and a multi-model pricing calculator across 10 models.",
+  },
+  labStep1Title: { es: "Ejecuta una transacción", en: "Run a transaction" },
+  labStep1Desc: { es: "Selecciona una consulta de negocio frecuente o pega tu propio intercambio real.", en: "Pick a business question a client might ask your bot or paste your own real exchange." },
+  labStep2Title: { es: "Cuenta los tokens", en: "Count the tokens" },
+  labStep2Desc: { es: "Los modelos no leen palabras, leen tokens. En español se suelen requerir más tokens por palabra que en inglés. Pagas por cada token de entrada y salida.", en: "Models don't read words — they read tokens. Spanish often requires more tokens per word than English. You pay for every token in, and every token out." },
+  labStep3Title: { es: "Escala la operación", en: "Scale it" },
+  labStep3Desc: { es: "¿Cuántas de estas conversaciones ocurren al mes a escala de producción?", en: "How many of these conversations happen per month at production scale?" },
+  labStep4Title: { es: "Escribe tu reflexión (150–300 palabras)", en: "Write your reflection (150–300 words)" },
+  labCopyResults: { es: "Copiar mis resultados", en: "Copy my results" },
+  labCopied: { es: "Copiado al portapapeles", en: "Copied to clipboard" },
 } satisfies Record<string, L>;

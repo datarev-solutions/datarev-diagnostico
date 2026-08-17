@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
 import { HeadcountPanel } from "@/components/HeadcountPanel";
+import { LlmCostCalculator } from "@/components/LlmCostCalculator";
 import {
   MIGRATION,
   PRICING_CHECKED,
@@ -412,6 +413,21 @@ function EngineMatrix({
 
 export default function CalculatorPage() {
   const { t, locale } = useApp();
+  const [mainTab, setMainTab] = useState<"cloud" | "llm">("cloud");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.location.hash === "#llm" || window.location.hash === "#llm-tokens")) {
+      setMainTab("llm");
+    }
+  }, []);
+
+  const switchMainTab = (tab: "cloud" | "llm") => {
+    setMainTab(tab);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", tab === "llm" ? "#llm-tokens" : "#cloud-data");
+    }
+  };
+
   const [input, setInput] = useState<CostInputs>(DEFAULT_INPUTS);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<"now" | "12m">("now");
@@ -483,15 +499,47 @@ export default function CalculatorPage() {
     <>
       <Header />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-16 pt-10">
-        <header className="mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
-            DataRev
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t(CALC.title)}</h1>
-          <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            {t(CALC.lead)}
-          </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-16 pt-8">
+        {/* Top-Level Navigation Tabs */}
+        <div className="no-print mb-8 border-b border-[var(--border)] pb-3">
+          <div className="flex gap-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => switchMainTab("cloud")}
+              className={`rounded-lg px-4 py-2.5 text-[14px] font-semibold transition ${
+                mainTab === "cloud"
+                  ? "bg-[var(--accent)] text-white shadow-sm"
+                  : "bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t(CALC.tabCloudData)}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMainTab("llm")}
+              className={`rounded-lg px-4 py-2.5 text-[14px] font-semibold transition ${
+                mainTab === "llm"
+                  ? "bg-[#A31F34] text-white shadow-sm"
+                  : "bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t(CALC.tabLlmToken)}
+            </button>
+          </div>
+        </div>
+
+        {mainTab === "llm" ? (
+          <LlmCostCalculator />
+        ) : (
+          <>
+            <header className="mb-8">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cyan)]">
+                DataRev
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t(CALC.title)}</h1>
+              <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
+                {t(CALC.lead)}
+              </p>
 
           {/* Scope switches, not a legend. These deliberately do NOT reuse the
               chart's categorical colours: those encode platform/licences/ops
@@ -1292,6 +1340,8 @@ export default function CalculatorPage() {
         <div className="mt-6">
           <ConsultCTA kind="results_review" variant="band" />
         </div>
+        </>
+        )}
       </main>
 
       <Footer />
