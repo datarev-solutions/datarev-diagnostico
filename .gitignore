@@ -32,6 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template. It holds no secrets — only the NAMES of the variables
+# and where to get each one — and it is useless if it never reaches the person
+# setting up the project. It was silently swallowed by the blanket rule above,
+# so the Stripe and Resend setup notes existed only on one laptop.
+!.env.example
 
 # vercel
 .vercel

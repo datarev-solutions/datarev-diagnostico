@@ -28,31 +28,62 @@ export const DATAREV = {
   city: "Ciudad de México",
 } as const;
 
-/**
- * Calendly targets.
- *
- * The guided assessment is offered as a full hour (confirmed 2026-08-06), but
- * `calendly.com/admin-datarev` currently exposes only a 30-minute event type.
- * Falling back to that link would promise an hour and then open a page saying
- * thirty minutes — at the exact moment the visitor decides to trust us.
- *
- * So the guided path deliberately has NO fallback. When the 60-minute event
- * does not exist, the CTA records the request and promises a callback instead
- * of opening a mismatched calendar. Set the env var and it becomes one-click.
- *
- * The review call really is 30 minutes, so that one links out as normal.
- */
-const guidedUrl = process.env.NEXT_PUBLIC_CALENDLY_GUIDED_URL?.trim();
+/** The only event type published on `calendly.com/admin-datarev` today. */
+const THIRTY_MINUTE_EVENT = "https://calendly.com/admin-datarev/30min";
 
+/**
+ * Anything that is not a Calendly URL cannot drive the inline widget, so it is
+ * treated as "not configured" rather than embedded and left to fail. A typo in
+ * an env var (a missing scheme, a Meet link pasted by mistake) then degrades to
+ * the mailto instead of rendering an empty box where the calendar should be.
+ */
+function calendlyUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    const calendly =
+      parsed.protocol === "https:" &&
+      (parsed.hostname === "calendly.com" ||
+        parsed.hostname.endsWith(".calendly.com"));
+    return calendly ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+const guidedUrl = calendlyUrl(process.env.NEXT_PUBLIC_CALENDLY_GUIDED_URL);
+
+/**
+ * Calendly targets. Embedded inline in the page rather than opened in a new
+ * tab or handed to a mail client: at the moment someone decides to talk to us,
+ * every extra hop is a chance to not do it.
+ *
+ * THE 60-MINUTE MISMATCH — open as of 2026-08-18. The guided assessment is
+ * offered as a full hour (confirmed 2026-08-06), yet the only event type that
+ * exists in Calendly is 30 minutes. The two cannot both be honoured, so:
+ *
+ *   - `NEXT_PUBLIC_CALENDLY_GUIDED_URL` set → that event is embedded and
+ *     `guidedIsFullHour` is true. Copy and calendar agree, nothing to explain.
+ *   - unset → the 30-minute event is embedded anyway, because a bookable slot
+ *     today beats a callback promise tomorrow, and `guidedIsFullHour` is false
+ *     so the UI says out loud that the slot on offer is half an hour. What is
+ *     not allowed is taking a 30-minute booking under one-hour copy in silence.
+ *
+ * Create the 60-minute event type in Calendly, set the env var, and the notice
+ * disappears on its own.
+ *
+ * The review call really is 30 minutes, so that one needs no such caveat.
+ */
 export const BOOKING = {
   /** Guided full assessment, run live with a consultant. One hour, free. */
-  guided: guidedUrl || null,
-  /** True once the 60-minute event type exists and is wired up. */
-  guidedIsBookable: Boolean(guidedUrl),
+  guided: guidedUrl ?? calendlyUrl(THIRTY_MINUTE_EVENT),
+  /** True only once a real 60-minute event type is wired up. */
+  guidedIsFullHour: guidedUrl !== null,
   /** Short call to walk through an already-finished report. */
   review:
-    process.env.NEXT_PUBLIC_CALENDLY_REVIEW_URL?.trim() ||
-    "https://calendly.com/admin-datarev/30min",
+    calendlyUrl(process.env.NEXT_PUBLIC_CALENDLY_REVIEW_URL) ??
+    calendlyUrl(THIRTY_MINUTE_EVENT),
 } as const;
 
 /** Copy that is specific to DataRev rather than to the assessment itself. */

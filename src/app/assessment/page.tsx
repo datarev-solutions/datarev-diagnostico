@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
+import { track } from "@/lib/analytics";
 import {
   AMBITIONS,
   DIMENSION_MAP,
@@ -74,6 +75,27 @@ export default function AssessmentPage() {
 
   const answeredCount = Object.keys(state.answers).length;
   const question = questions[Math.min(index, questions.length - 1)];
+
+  /**
+   * The top of the funnel. Held in a ref rather than state because the only
+   * thing it decides is whether an event has already been sent — putting it in
+   * state would re-render the page to record its own analytics, and setting
+   * state from inside an effect is exactly what this React version lints
+   * against. Waits for `hydrated`: before that the persisted answers have not
+   * been read yet, and `resumed` would be a lie on every reload.
+   */
+  const startTracked = useRef(false);
+  useEffect(() => {
+    if (!hydrated || startTracked.current) return;
+    startTracked.current = true;
+    track("assessment_started", {
+      mode: state.mode,
+      questions: questionIds.length,
+      // Distinguishes a fresh start from someone picking up where they left
+      // off, so the completion rate is not diluted by returning visitors.
+      resumed: answeredCount > 0,
+    });
+  }, [hydrated, state.mode, questionIds.length, answeredCount]);
 
   const goNext = useCallback(() => {
     setOverride((current) => {
@@ -250,7 +272,18 @@ export default function AssessmentPage() {
               const gap = questionIds.findIndex((id) => !state.answers[id]);
               if (gap !== -1) setOverride({ step: "questions", index: gap });
             }}
-            onFinish={() => router.push("/results")}
+            onFinish={() => {
+              track("assessment_completed", {
+                mode: state.mode,
+                answered: answeredCount,
+                questions: questions.length,
+                // Finishing with gaps is allowed, so "completed" alone would
+                // overstate how many people actually answered everything.
+                complete: answeredCount === questions.length,
+                ambition: state.ambition,
+              });
+              router.push("/results");
+            }}
             t={t}
             locale={locale}
           />

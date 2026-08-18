@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
+import { sendConsultationRequestReceived } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 
 const bodySchema = z.object({
@@ -60,6 +61,21 @@ export async function POST(request: Request) {
       { status: invalidEmail ? 400 : 500 },
     );
   }
+
+  // Same shape as the lead route: scheduled with `after` so the acknowledgement
+  // cannot slow the submit or turn a recorded request into a visible error.
+  // Someone asking for a consultation is the highest-intent visitor the app
+  // has; leaving them with no confirmation at all is the one place silence
+  // costs the most.
+  after(async () => {
+    await sendConsultationRequestReceived({
+      to: parsed.email,
+      locale: parsed.locale,
+      name: parsed.fullName,
+      kind: parsed.kind,
+      consultationId: data?.consultationId ?? null,
+    });
+  });
 
   return NextResponse.json({
     success: true,

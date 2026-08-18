@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { track } from "@/lib/analytics";
 import { DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
 import {
@@ -123,6 +124,22 @@ export function LeadGate({ state, result }: LeadGateProps) {
 
       const body = await response.json();
       if (!response.ok || !body.success) throw new Error(body.error ?? "failed");
+
+      // Only after the row exists. Firing on submit would count the failures
+      // as conversions, which is the one number this event exists to get right.
+      //
+      // Nothing the visitor typed travels with it — not the email, not the
+      // name, not the company. What is here is the shape of the conversion:
+      // which path, in which language, with the maturity level it bought.
+      track("lead_captured", {
+        method: "form",
+        locale,
+        level: result.level,
+        consent_marketing: consent,
+        // Whether the optional fields earn their place in the form.
+        has_phone: phone.length > 0,
+        has_job_title: jobTitle.length > 0,
+      });
 
       rememberLead({
         leadId: body.data.leadId,

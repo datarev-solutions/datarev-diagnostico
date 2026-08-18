@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
+import { track } from "@/lib/analytics";
 import { BOOKING, DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
 import { useApp } from "./AppProvider";
+import { BookingEmbed, type BookingKind } from "./BookingEmbed";
 import { useSession } from "./SessionProvider";
 
-type Kind = "guided_full" | "results_review";
+type Kind = BookingKind;
 
 /**
- * Records the request before handing the visitor to Calendly. Booking is the
- * happy path, but the ones who open the calendar and never book are exactly
- * the leads worth chasing — so the row is written either way.
+ * Records the request before opening the calendar. Booking is the happy path,
+ * but the ones who open the calendar and never book are exactly the leads
+ * worth chasing — so the row is written either way.
  */
 async function recordRequest(input: {
   email: string;
@@ -75,26 +77,24 @@ export function ConsultCTA({
   const [name, setName] = useState(lead?.name ?? "");
   const [expanded, setExpanded] = useState(false);
   const [sending, setSending] = useState(false);
-  const [requested, setRequested] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const regionId = `booking-${useId()}`;
 
   const bookingUrl = kind === "guided_full" ? BOOKING.guided : BOOKING.review;
-  // The guided hour has no calendar until the 60-minute event type exists.
-  // Until then we take the request and promise a callback rather than open a
-  // 30-minute page under a one-hour promise.
-  const bookable = kind === "guided_full" ? BOOKING.guidedIsBookable : true;
+  // The guided path is sold as an hour; Calendly may still only publish the
+  // 30-minute event. It stays bookable either way — the mismatch is disclosed
+  // above the calendar rather than hidden behind a callback promise.
+  const fullHour = kind !== "guided_full" || BOOKING.guidedIsFullHour;
 
   function finish() {
     setSending(false);
-    if (bookable && bookingUrl) {
-      window.open(bookingUrl, "_blank", "noopener,noreferrer");
-    } else {
-      setRequested(true);
-    }
+    setBooking(true);
   }
 
-  /** Already identified: record, then either open the calendar or confirm. */
+  /** Already identified: record, then drop the calendar straight into the page. */
   async function bookDirect() {
     setSending(true);
+    track("consult_cta_clicked", { kind, variant, identified: true });
     await recordRequest({
       email: knownEmail,
       fullName: lead?.name,
@@ -124,12 +124,14 @@ export function ConsultCTA({
 
   const title = kind === "guided_full" ? UI.guidedTitle : UI.nextStepTitle;
   const lead_ = kind === "guided_full" ? UI.guidedLead : UI.nextStepLead;
+  // "Book the 1-hour session" is only allowed to be the label when an hour is
+  // what the calendar will actually offer.
   const cta =
     kind !== "guided_full"
       ? UI.nextStepCta
-      : bookable
+      : fullHour
         ? UI.guidedCta
-        : UI.guidedRequestCta;
+        : UI.bookingSeeTimes;
 
   const shell =
     variant === "band"
@@ -161,24 +163,37 @@ export function ConsultCTA({
         <CalendarIcon className="hidden h-9 w-9 shrink-0 text-[var(--cyan)] opacity-70 sm:block" />
       </div>
 
-      {requested ? (
-        <div className="mt-5 rounded-lg border border-[var(--cyan)]/40 bg-[var(--surface-2)] p-4">
-          <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
-            {t(UI.guidedRequestDone)}
-          </p>
-          <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
-            {t(UI.guidedRequestNote)}
-          </p>
+      {booking ? (
+        <div className="mt-5">
+          <button
+            type="button"
+            onClick={() => setBooking(false)}
+            aria-expanded={true}
+            aria-controls={regionId}
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 py-2 text-[13px] font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+          >
+            {t(UI.bookingClose)}
+          </button>
+          <BookingEmbed
+            id={regionId}
+            url={bookingUrl}
+            kind={kind}
+            prefillName={name || lead?.name}
+            prefillEmail={email || knownEmail}
+            note={fullHour ? null : UI.bookingHalfHourNote}
+          />
         </div>
       ) : knownEmail ? (
         <button
           type="button"
           onClick={() => void bookDirect()}
           disabled={sending}
+          aria-expanded={false}
+          aria-controls={regionId}
           className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:opacity-60"
         >
           <CalendarIcon className="h-4 w-4" />
-          {t(cta)}
+          {sending ? t(UI.gateSending) : t(cta)}
         </button>
       ) : expanded ? (
         <form onSubmit={bookWithForm} className="mt-5 space-y-3">
@@ -214,6 +229,8 @@ export function ConsultCTA({
           <button
             type="submit"
             disabled={sending}
+            aria-expanded={false}
+            aria-controls={regionId}
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-[var(--accent-strong)] disabled:opacity-60"
           >
             <CalendarIcon className="h-4 w-4" />
@@ -227,7 +244,13 @@ export function ConsultCTA({
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <button
             type="button"
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              // The intent is expressed here, not at submit: this is the click
+              // the drop-off between "wants to talk" and "left an email" is
+              // measured against.
+              track("consult_cta_clicked", { kind, variant, identified: false });
+              setExpanded(true);
+            }}
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-[var(--accent-strong)]"
           >
             <CalendarIcon className="h-4 w-4" />

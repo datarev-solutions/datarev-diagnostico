@@ -80,6 +80,28 @@ export const UI = {
     en: "We confirm the slot by email, usually the same business day.",
   },
 
+  // Inline scheduler
+  bookingSeeTimes: { es: "Ver horarios disponibles", en: "See available times" },
+  bookingClose: { es: "Cerrar el calendario", en: "Close the calendar" },
+  bookingRegion: {
+    es: "Calendario para agendar la sesión",
+    en: "Calendar to book the session",
+  },
+  bookingLoading: { es: "Cargando el calendario…", en: "Loading the calendar…" },
+  bookingNewTab: {
+    es: "Abrir el calendario en una pestaña nueva",
+    en: "Open the calendar in a new tab",
+  },
+  bookingUnavailable: {
+    es: "No pudimos cargar el calendario aquí. Escríbenos y lo agendamos por correo.",
+    en: "We couldn't load the calendar here. Email us and we'll book it by mail.",
+  },
+  /** Shown while the app promises an hour and Calendly only publishes 30 min. */
+  bookingHalfHourNote: {
+    es: "Por ahora la agenda en línea sólo publica franjas de 30 minutos. Aparta ese horario y ahí acordamos la sesión completa.",
+    en: "Only the 30-minute slot is published for now. Take that time and we'll confirm the full hour by email.",
+  },
+
   // Lead capture
   gateTitle: {
     es: "Tu diagnóstico está listo",

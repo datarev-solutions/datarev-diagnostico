@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { AppProvider } from "@/components/AppProvider";
 import { SessionProvider } from "@/components/SessionProvider";
 import "./globals.css";
@@ -43,6 +44,13 @@ export default function RootLayout({
         <SessionProvider>
           <AppProvider>{children}</AppProvider>
         </SessionProvider>
+        {/* Page-level traffic, from the platform this already deploys to.
+            Outside the providers on purpose: it renders null, subscribes to
+            nothing in this tree, and must not sit between the providers and
+            the page they serve. Product events — who started the assessment,
+            who hit the paywall — go to `events` via lib/analytics.ts; this
+            only answers "how many people arrived, and on what". */}
+        <Analytics />
       </body>
     </html>
   );

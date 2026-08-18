@@ -13,6 +13,7 @@ import { MaturityGrid } from "@/components/charts/MaturityGrid";
 import { Radar } from "@/components/charts/Radar";
 import { ScoreHero, StageDistribution } from "@/components/charts/Verdict";
 import { Roadmap } from "@/components/Roadmap";
+import { track } from "@/lib/analytics";
 import { DATAREV } from "@/lib/datarev";
 import { DIMENSION_MAP } from "@/lib/framework";
 import { formatDate, SOURCE_LIST, UI } from "@/lib/i18n";
@@ -62,6 +63,16 @@ export default function ResultsPage() {
         });
         const body = await response.json();
         if (response.ok && body.success) {
+          // The other half of `lead_captured`: the form path fires in
+          // LeadGate, but a Google sign-in never touches that form and its
+          // row is written here. Counting only the form would report the
+          // Google funnel as pure drop-off.
+          track("lead_captured", {
+            method: "google",
+            locale,
+            level: result.level,
+          });
+
           rememberLead({
             leadId: body.data.leadId,
             assessmentId: body.data.assessmentId,
@@ -84,6 +95,43 @@ export default function ResultsPage() {
     result,
     locale,
     rememberLead,
+  ]);
+
+  /**
+   * The report itself, counted once per mount and only when it actually
+   * renders — the same component also renders the empty state and the lead
+   * gate, and neither of those is a report anyone read.
+   *
+   * A ref, not state, for the same reason as the save above: this decides
+   * nothing the user can see, and this React version lints against setting
+   * state from inside an effect.
+   */
+  const reportTracked = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !ready || !hasProgress || !unlocked) return;
+    if (reportTracked.current) return;
+    reportTracked.current = true;
+
+    track("report_viewed", {
+      mode: state.mode,
+      level: result.level,
+      // One decimal, matching what the page prints.
+      overall: Math.round(result.overall * 10) / 10,
+      answered: Object.keys(state.answers).length,
+      actions: roadmap.length,
+      // Which key opened the door — the email form or a Google account.
+      unlocked_by: user ? "account" : "lead",
+    });
+  }, [
+    hydrated,
+    ready,
+    hasProgress,
+    unlocked,
+    state.mode,
+    state.answers,
+    result,
+    roadmap.length,
+    user,
   ]);
 
   async function copyLink() {

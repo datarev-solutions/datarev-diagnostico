@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
+import { track } from "@/lib/analytics";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
 import { StackPanel } from "@/components/StackPanel";
@@ -14,7 +15,7 @@ import { expandStack } from "@/lib/stack";
 import { UC } from "@/lib/i18nUseCases";
 import { ACTOR_LABEL, actorsIn, RACI_LABEL, raciFor } from "@/lib/raci";
 import { Gated } from "@/components/Gate";
-import type { TierId } from "@/lib/tiers";
+import { can, type Capability, type TierId } from "@/lib/tiers";
 import { useUseCaseSelection } from "@/lib/useCaseSelection";
 import {
   DEPARTMENT_LABEL,
@@ -38,6 +39,14 @@ const PROCESS_ORDER: ProcessType[] = ["finance", "customer", "operations", "prod
 // offering it beside "All industries" would only be confusing.
 const INDUSTRY_ORDER = (Object.keys(INDUSTRY_LABEL) as Industry[]).filter((i) => i !== "cross");
 const DEPARTMENT_ORDER = Object.keys(DEPARTMENT_LABEL) as Department[];
+
+/**
+ * Every capability this page gates. Kept beside the page rather than derived
+ * from the JSX because a `<Gated>` that stops rendering is exactly the case an
+ * automatic derivation would miss — and the paywall event is what tells us
+ * which wall people actually hit.
+ */
+const GATED_HERE: Capability[] = ["usecases.scores", "usecases.effort"];
 
 const num = (n: number, locale: string) =>
   new Intl.NumberFormat(locale === "es" ? "es-MX" : "en-US", {
@@ -183,7 +192,7 @@ function PriorityMatrix({
 }
 
 export function UseCasesClient({ tier }: { tier: TierId }) {
-  const { t, locale } = useApp();
+  const { t, locale, hydrated } = useApp();
   // Shared with the calculator, so a selection made here changes the cost
   // there without the user re-entering anything.
   const { ids: selectedIds, selected, toggle, setAll } = useUseCaseSelection();
@@ -194,6 +203,55 @@ export function UseCasesClient({ tier }: { tier: TierId }) {
   const roll = useMemo(() => rollUpUseCases(selected), [selected]);
   const raciRows = useMemo(() => raciFor(selected), [selected]);
   const raciActors = useMemo(() => actorsIn(raciRows), [raciRows]);
+
+  // Once per mount. Refs rather than state throughout: none of this changes
+  // what is on screen, and this React version lints against setting state
+  // synchronously inside an effect.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    // Waits for hydration on purpose. The selection is a useSyncExternalStore
+    // whose server snapshot is the three defaults; firing on the first commit
+    // reported "3 selected" to every visitor, including one who had picked a
+    // single case. Verified against the events table, which is how it was
+    // caught.
+    if (!hydrated || viewTracked.current) return;
+    viewTracked.current = true;
+    track("usecases_viewed", { tier, selected: selectedIds.length });
+  }, [hydrated, tier, selectedIds.length]);
+
+  // The wall, recorded where it is actually hit. `tier` is resolved on the
+  // server and fixed for the life of this page, so a locked capability here is
+  // a section that rendered locked in front of a real visitor — which is the
+  // single most useful thing this table can be asked.
+  const paywallTracked = useRef(false);
+  useEffect(() => {
+    if (paywallTracked.current) return;
+    paywallTracked.current = true;
+    for (const capability of GATED_HERE) {
+      if (can(tier, capability)) continue;
+      track("paywall_hit", { capability, tier, surface: "usecases" });
+    }
+  }, [tier]);
+
+  /**
+   * Selecting a case is the one deliberate act on this page, so it is worth an
+   * event — but only the id and the resulting size of the selection, never the
+   * case's text.
+   */
+  const toggleCase = useCallback(
+    (id: string) => {
+      const turningOn = !selectedIds.includes(id);
+      toggle(id);
+      track("usecase_selected", {
+        use_case_id: id,
+        action: turningOn ? "select" : "deselect",
+        // Where the selection ends up, so the average basket size is readable
+        // without replaying every event in the session.
+        total: turningOn ? selectedIds.length + 1 : selectedIds.length - 1,
+      });
+    },
+    [selectedIds, toggle],
+  );
 
   /** Score through the chosen industry's lens. `all` returns base scores. */
   const scoreOf = useCallback(
@@ -335,7 +393,7 @@ export function UseCasesClient({ tier }: { tier: TierId }) {
               <PriorityMatrix
                 cases={plotted}
                 selectedIds={selectedIds}
-                onToggle={toggle}
+                onToggle={toggleCase}
                 locale={locale}
                 t={t}
               />
@@ -498,7 +556,7 @@ export function UseCasesClient({ tier }: { tier: TierId }) {
                       <button
                         key={uc.id}
                         type="button"
-                        onClick={() => toggle(uc.id)}
+                        onClick={() => toggleCase(uc.id)}
                         aria-pressed={on}
                         className={`rounded-xl border p-4 text-left transition ${
                           on

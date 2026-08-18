@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
+import { sendLeadConfirmation } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 
 const assessmentSchema = z.object({
@@ -97,6 +98,24 @@ export async function POST(request: Request) {
       { status: invalidEmail ? 400 : 500 },
     );
   }
+
+  // Confirmation mail is scheduled with `after`, so it runs once the response
+  // is already on the wire. Two things follow, both deliberate: a slow provider
+  // cannot add latency to a form submit, and a failed send cannot turn a
+  // captured lead into an error the visitor sees. `sendLeadConfirmation` also
+  // swallows its own failures — belt and braces, because the lead row is the
+  // thing that matters and the email is a courtesy on top of it.
+  after(async () => {
+    await sendLeadConfirmation({
+      to: parsed.email,
+      locale: parsed.locale,
+      name: parsed.fullName,
+      // Their own answers, encoded — the same link the in-app share button
+      // produces. The report itself stays behind the paywall on /results.
+      shareCode: parsed.assessment?.shareCode,
+      leadId: data?.leadId ?? null,
+    });
+  });
 
   return NextResponse.json({
     success: true,

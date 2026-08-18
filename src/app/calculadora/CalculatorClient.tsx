@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { track } from "@/lib/analytics";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
 import { HeadcountPanel } from "@/components/HeadcountPanel";
@@ -40,7 +41,7 @@ import {
 import type { L } from "@/lib/framework";
 import { CALC } from "@/lib/i18nCalc";
 import { Gated } from "@/components/Gate";
-import type { TierId } from "@/lib/tiers";
+import { can, type Capability, type TierId } from "@/lib/tiers";
 import { useUseCaseSelection } from "@/lib/useCaseSelection";
 
 const HOST_LABELS: Record<HostCloud, string> = {
@@ -342,6 +343,18 @@ function CompareChart({
   );
 }
 
+/**
+ * How long the inputs must be still before a burst of edits is recorded as one
+ * `calculator_input_changed`.
+ *
+ * A range input fires on every pixel of a drag: one sweep of the volume slider
+ * is hundreds of change events, and writing a row for each would fill the
+ * events table with the same visit's mouse movement. A second of quiet is the
+ * granularity that actually answers the question the event exists for — which
+ * inputs people reach for — at roughly one row per deliberate adjustment.
+ */
+const INPUT_SETTLE_MS = 1000;
+
 const ENGINE_ROWS: EngineId[] = ["native", "snowflake", "databricks"];
 const ENGINE_ROW_LABEL: Record<EngineId, string> = {
   native: "Nativo",
@@ -448,8 +461,74 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
   ]);
   const [pinnedStack, setPinnedStack] = useState<StackId | null>(null);
 
-  const set = <K extends keyof CostInputs>(key: K, value: CostInputs[K]) =>
+  /* ------------------------------------------------------------ analytics */
+
+  // Refs, not state: none of this changes what is rendered, and this React
+  // version lints against setting state synchronously inside an effect.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    track("calculator_viewed", { tier, tab: mainTab });
+  }, [tier, mainTab]);
+
+  /**
+   * The wall, per tab. The two tabs are gated by different capabilities and
+   * only the visible one renders, so this fires when a locked region is
+   * actually put in front of someone — including the second time, when they
+   * switch tabs and hit a different wall. The set keeps each capability to one
+   * row per visit rather than one per tab bounce.
+   */
+  const paywallSeen = useRef<Set<Capability>>(new Set());
+  useEffect(() => {
+    const capability: Capability =
+      mainTab === "llm" ? "calculator.llm" : "calculator.cloud";
+    if (can(tier, capability) || paywallSeen.current.has(capability)) return;
+    paywallSeen.current.add(capability);
+    track("paywall_hit", { capability, tier, surface: "calculator", tab: mainTab });
+  }, [mainTab, tier]);
+
+  // One row per settled burst of edits. See INPUT_SETTLE_MS.
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFields = useRef<Set<string>>(new Set());
+  const pendingChanges = useRef(0);
+
+  const flushInputChange = useCallback((settled: boolean) => {
+    if (settleTimer.current) {
+      clearTimeout(settleTimer.current);
+      settleTimer.current = null;
+    }
+    if (pendingChanges.current === 0) return;
+
+    const fields = [...pendingFields.current].sort();
+    const changes = pendingChanges.current;
+    pendingFields.current.clear();
+    pendingChanges.current = 0;
+
+    // Field names and counts only. The values are the visitor's commercial
+    // situation and none of our business here; what the funnel needs to know
+    // is which controls people touch before they leave.
+    track("calculator_input_changed", { fields, changes, settled });
+  }, []);
+
+  const noteInputChange = useCallback(
+    (field: string) => {
+      pendingFields.current.add(field);
+      pendingChanges.current += 1;
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+      settleTimer.current = setTimeout(() => flushInputChange(true), INPUT_SETTLE_MS);
+    },
+    [flushInputChange],
+  );
+
+  // Leaving mid-drag still counts: the last thing someone adjusted before
+  // giving up is exactly the row worth having.
+  useEffect(() => () => flushInputChange(false), [flushInputChange]);
+
+  const set = <K extends keyof CostInputs>(key: K, value: CostInputs[K]) => {
+    noteInputChange(key);
     setInput((current) => ({ ...current, [key]: value }));
+  };
 
   const dataGb =
     horizon === "now" ? input.dataGb : projectDataGb(input.dataGb, input.growthPct, 12);
@@ -487,10 +566,17 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
   );
   const summary = useMemo(() => selectedTotals(totals, selected), [totals, selected]);
 
-  const toggleDimension = (id: ProjectDimension) =>
+  const toggleDimension = (id: ProjectDimension) => {
+    noteInputChange(`scope.${id}`);
     setSelected((current) =>
       current.includes(id) ? current.filter((d) => d !== id) : [...current, id],
     );
+  };
+
+  const setRate = (role: MigrationRole, value: number) => {
+    noteInputChange(`rate.${role}`);
+    setRates((current) => ({ ...current, [role]: value }));
+  };
 
   const refreshOptions: { id: Refresh; label: string }[] = [
     { id: "daily", label: t(CALC.refreshDaily) },
@@ -628,7 +714,10 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => setPinnedStack(s.id)}
+                    onClick={() => {
+                      noteInputChange("stack");
+                      setPinnedStack(s.id);
+                    }}
                     className={`rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold transition ${
                       summaryStack.id === s.id
                         ? "bg-[var(--accent)] text-white"
@@ -711,7 +800,10 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
             ...(selected.includes("ai") ? ai.lines : []),
           ]}
           months={months}
-          onMonths={setMonths}
+          onMonths={(next) => {
+            noteInputChange("months");
+            setMonths(next);
+          }}
           locale={locale}
         />
 
@@ -923,7 +1015,10 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
             ) : null}
             <button
               type="button"
-              onClick={() => setInput(DEFAULT_INPUTS)}
+              onClick={() => {
+                noteInputChange("reset");
+                setInput(DEFAULT_INPUTS);
+              }}
               className="ml-auto text-[12px] font-medium text-[var(--text-muted)] underline-offset-4 hover:text-[var(--text-primary)] hover:underline"
             >
               {t(CALC.reset)}
@@ -953,7 +1048,10 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
               <button
                 key={o.id}
                 type="button"
-                onClick={() => setHorizon(o.id)}
+                onClick={() => {
+                  noteInputChange("horizon");
+                  setHorizon(o.id);
+                }}
                 className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
                   horizon === o.id
                     ? "bg-[var(--accent)] text-white"
@@ -1037,7 +1135,10 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
                   <button
                     key={h}
                     type="button"
-                    onClick={() => setHost(h)}
+                    onClick={() => {
+                      noteInputChange("host");
+                      setHost(h);
+                    }}
                     className={`rounded-md px-3 py-1.5 text-[12px] font-semibold transition ${
                       host === h
                         ? "bg-[var(--accent)] text-white"
@@ -1136,12 +1237,7 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
                     max={5000}
                     step={50}
                     value={rates[role]}
-                    onChange={(e) =>
-                      setRates((current) => ({
-                        ...current,
-                        [role]: Number(e.target.value) || 0,
-                      }))
-                    }
+                    onChange={(e) => setRate(role, Number(e.target.value) || 0)}
                     className="tnum w-full bg-transparent text-[13px] outline-none"
                   />
                   <span className="text-[11px] text-[var(--text-muted)]">/d</span>
@@ -1248,12 +1344,7 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
                     max={5000}
                     step={50}
                     value={rates[role]}
-                    onChange={(e) =>
-                      setRates((current) => ({
-                        ...current,
-                        [role]: Number(e.target.value) || 0,
-                      }))
-                    }
+                    onChange={(e) => setRate(role, Number(e.target.value) || 0)}
                     className="tnum w-full bg-transparent text-[13px] outline-none"
                   />
                   <span className="text-[11px] text-[var(--text-muted)]">/d</span>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
+import { track } from "@/lib/analytics";
 import { CAPABILITY_COPY, TIERS_COPY } from "@/lib/i18nTiers";
 import type { TierPrice } from "@/lib/stripePrices";
 import { TIER_ORDER, TIERS, type Capability, type TierId } from "@/lib/tiers";
@@ -38,7 +39,23 @@ export function PricingTable({
     return TIERS[tier].capabilities.filter((c) => !previous.has(c));
   };
 
+  // Once per mount, in a ref rather than state: recording a page view must not
+  // re-render the page, and this React version lints against setting state
+  // synchronously inside an effect.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    // `sellable` matters: a visit to a pricing page with no live Stripe price
+    // is a very different data point from one where the buttons worked.
+    track("pricing_viewed", { tier: currentTier, sellable: anyPriceLive });
+  }, [currentTier, anyPriceLive]);
+
   async function startCheckout(tier: TierId) {
+    // Before the fetch. The interesting number is how many people press the
+    // button, and firing on the redirect would silently drop everyone whose
+    // checkout session failed to create — the exact case worth knowing about.
+    track("checkout_started", { tier, from: currentTier });
     setBusy(tier);
     try {
       const res = await fetch("/api/stripe/checkout", {
