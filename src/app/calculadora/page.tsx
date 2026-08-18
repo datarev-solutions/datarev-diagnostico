@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
@@ -413,13 +413,14 @@ function EngineMatrix({
 
 export default function CalculatorPage() {
   const { t, locale } = useApp();
-  const [mainTab, setMainTab] = useState<"cloud" | "llm">("cloud");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window.location.hash === "#llm" || window.location.hash === "#llm-tokens")) {
-      setMainTab("llm");
-    }
-  }, []);
+  // Read the hash in the initialiser rather than in an effect: setting state
+  // synchronously inside an effect makes React render the cloud tab first and
+  // then immediately replace it, which flashes the wrong tab on a deep link.
+  const [mainTab, setMainTab] = useState<"cloud" | "llm">(() => {
+    if (typeof window === "undefined") return "cloud";
+    const hash = window.location.hash;
+    return hash === "#llm" || hash === "#llm-tokens" ? "llm" : "cloud";
+  });
 
   const switchMainTab = (tab: "cloud" | "llm") => {
     setMainTab(tab);
