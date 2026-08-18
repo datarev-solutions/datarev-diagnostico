@@ -13,6 +13,7 @@ import { MaturityGrid } from "@/components/charts/MaturityGrid";
 import { Radar } from "@/components/charts/Radar";
 import { ScoreHero, StageDistribution } from "@/components/charts/Verdict";
 import { Roadmap } from "@/components/Roadmap";
+import { ExecutiveBlueprintPDF } from "@/components/ExecutiveBlueprintPDF";
 import { track } from "@/lib/analytics";
 import { DATAREV } from "@/lib/datarev";
 import { DIMENSION_MAP } from "@/lib/framework";
@@ -395,6 +396,15 @@ export default function ResultsPage() {
           </section>
         </div>
       </main>
+
+      <ExecutiveBlueprintPDF
+        score={result.overall}
+        level={result.level}
+        stageName={t(result.stage.name)}
+        dimensionScores={Object.fromEntries(result.dimensions.map((d) => [d.dimension, d.raw])) as Record<string, number>}
+        topGaps={gaps.map((g) => t(DIMENSION_MAP[g.dimension].name))}
+        clientDomain={state.company.name || "Empresa Prospecto"}
+      />
 
       <Footer />
     </>

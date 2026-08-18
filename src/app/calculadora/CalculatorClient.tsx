@@ -8,6 +8,7 @@ import { Footer, Header } from "@/components/Chrome";
 import { ConsultCTA } from "@/components/ConsultCTA";
 import { HeadcountPanel } from "@/components/HeadcountPanel";
 import { LlmCostCalculator } from "@/components/LlmCostCalculator";
+import { BuildVsBuyCalculator } from "@/components/BuildVsBuyCalculator";
 import {
   MIGRATION,
   PRICING_CHECKED,
@@ -431,16 +432,18 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
   // Read the hash in the initialiser rather than in an effect: setting state
   // synchronously inside an effect makes React render the cloud tab first and
   // then immediately replace it, which flashes the wrong tab on a deep link.
-  const [mainTab, setMainTab] = useState<"cloud" | "llm">(() => {
+  const [mainTab, setMainTab] = useState<"cloud" | "llm" | "buildVsBuy">(() => {
     if (typeof window === "undefined") return "cloud";
     const hash = window.location.hash;
+    if (hash === "#build-vs-buy") return "buildVsBuy";
     return hash === "#llm" || hash === "#llm-tokens" ? "llm" : "cloud";
   });
 
-  const switchMainTab = (tab: "cloud" | "llm") => {
+  const switchMainTab = (tab: "cloud" | "llm" | "buildVsBuy") => {
     setMainTab(tab);
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", tab === "llm" ? "#llm-tokens" : "#cloud-data");
+      const hash = tab === "llm" ? "#llm-tokens" : tab === "buildVsBuy" ? "#build-vs-buy" : "#cloud-data";
+      window.history.replaceState(null, "", hash);
     }
   };
 
@@ -614,10 +617,23 @@ export function CalculatorClient({ tier }: { tier: TierId }) {
             >
               {t(CALC.tabLlmToken)}
             </button>
+            <button
+              type="button"
+              onClick={() => switchMainTab("buildVsBuy")}
+              className={`rounded-lg px-4 py-2.5 text-[14px] font-semibold transition ${
+                mainTab === "buildVsBuy"
+                  ? "bg-[#1763ff] text-white shadow-sm"
+                  : "bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              Build vs. Buy Matrix
+            </button>
           </div>
         </div>
 
-        {mainTab === "llm" ? (
+        {mainTab === "buildVsBuy" ? (
+          <BuildVsBuyCalculator />
+        ) : mainTab === "llm" ? (
           <Gated capability="calculator.llm" tier={tier}>
             <LlmCostCalculator />
           </Gated>

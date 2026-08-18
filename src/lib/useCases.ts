@@ -99,6 +99,10 @@ export interface UseCase {
   tech: TechComponent[];
   /** Delivery effort in days, by role. */
   effort: Partial<Record<MigrationRole, number>>;
+  /** Agentic workflow execution readiness classification. */
+  agenticFeasibility?: "copilot" | "semi_autonomous" | "multi_agent";
+  /** EU AI Act regulatory compliance risk classification. */
+  euAiActRisk?: "minimal" | "transparency" | "high_risk" | "prohibited";
 }
 
 export const PROCESS_LABEL: Record<ProcessType, L> = {

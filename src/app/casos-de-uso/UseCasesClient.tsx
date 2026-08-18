@@ -12,6 +12,7 @@ import { SOURCE_BY_ID, SOURCES, READINESS_GAPS } from "@/lib/evidence";
 import { APQC_CATEGORY, topProcesses } from "@/lib/processes";
 import { quadrantOfScored, scoreFor } from "@/lib/useCaseScoring";
 import { expandStack } from "@/lib/stack";
+import { getUseCaseAgenticClassification } from "@/lib/agenticGovernance";
 import { UC } from "@/lib/i18nUseCases";
 import { ACTOR_LABEL, actorsIn, RACI_LABEL, raciFor } from "@/lib/raci";
 import { Gated } from "@/components/Gate";
@@ -613,11 +614,26 @@ export function UseCasesClient({ tier }: { tier: TierId }) {
                               </span>
                             </span>
                           </div>
-                          {quadrant === "quickWin" ? (
-                            <span className="shrink-0 rounded-full bg-[var(--cyan)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#04081f]">
-                              {t(UC.quickWin)}
-                            </span>
-                          ) : null}
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            {quadrant === "quickWin" ? (
+                              <span className="rounded-full bg-[var(--cyan)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#04081f]">
+                                {t(UC.quickWin)}
+                              </span>
+                            ) : null}
+                            {(() => {
+                              const gov = getUseCaseAgenticClassification(uc);
+                              return (
+                                <div className="flex flex-wrap items-center justify-end gap-1">
+                                  <span className="rounded border border-[var(--cyan)]/20 bg-[var(--cyan)]/10 px-1.5 py-px text-[9px] font-medium text-[var(--cyan)]">
+                                    🤖 {gov.agenticLabel}
+                                  </span>
+                                  <span className={`rounded border px-1.5 py-px text-[9px] font-medium ${gov.euBadgeColor}`}>
+                                    ⚖️ {gov.euRiskLabel}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
 
                         <p className="mt-2.5 text-[11.5px] italic leading-relaxed text-[var(--text-secondary)]">
