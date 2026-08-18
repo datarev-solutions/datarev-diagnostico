@@ -23,6 +23,26 @@ export const TIERS_COPY = {
    * the claim "we hide it" is worth nothing to a technical reader — saying
    * where the number lives is what makes the promise checkable.
    */
+  // Pricing page
+  pricingTitle: { es: "Planes", en: "Plans" },
+  pricingLead: {
+    es: "El diagnóstico de madurez es gratis con tu cuenta. Los planes de pago abren el planeador de casos de uso puntuado para tu industria y la calculadora de costos completa.",
+    en: "The maturity assessment is free with an account. Paid plans open the use-case planner scored for your industry and the full cost calculator.",
+  },
+  pricingCredit: {
+    es: "Lo que pagues se acredita a tu proyecto si decides contratarnos.",
+    en: "Whatever you pay is credited against your project if you decide to engage us.",
+  },
+  pricingCurrent: { es: "Tu plan actual", en: "Your current plan" },
+  pricingChoose: { es: "Elegir", en: "Choose" },
+  pricingFree: { es: "Sin costo", en: "Free" },
+  pricingOneTime: { es: "pago único", en: "one-time" },
+  pricingSoon: {
+    es: "Los pagos aún no están activos. Escríbenos y lo resolvemos contigo.",
+    en: "Payments are not live yet. Get in touch and we will sort it out with you.",
+  },
+  pricingIncludes: { es: "Incluye", en: "Includes" },
+
   hiddenUntilPurchase: {
     es: "La cifra se calcula en el servidor y no viaja al navegador hasta que la compras. Aquí ves la estructura del cálculo —cuántas líneas, qué categorías, en qué unidad—, no el número.",
     en: "The figure is computed on the server and is not sent to your browser until you buy it. What you see here is the shape of the calculation — how many lines, which categories, in what unit — not the number.",
