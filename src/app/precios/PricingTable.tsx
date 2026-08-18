@@ -27,7 +27,8 @@ export function PricingTable({
   const [busy, setBusy] = useState<TierId | null>(null);
 
   const priceOf = (tier: TierId) => prices.find((p) => p.tier === tier) ?? null;
-  const anyPriceLive = prices.some((p) => p.formatted !== null);
+  // "Live" means Stripe can take the money, not merely that a number exists.
+  const anyPriceLive = prices.some((p) => p.formatted !== null && !p.isListPrice);
 
   /** What this tier adds that the one before it did not — the reason to move up. */
   const newIn = (tier: TierId): Capability[] => {
@@ -85,7 +86,8 @@ export function PricingTable({
             const tier = TIERS[id];
             const price = priceOf(id);
             const isCurrent = id === currentTier;
-            const sellable = price?.formatted !== null && price?.formatted !== undefined;
+            const hasPrice = price?.formatted != null;
+            const sellable = hasPrice && !price.isListPrice;
 
             return (
               <section
@@ -108,7 +110,7 @@ export function PricingTable({
                     ? t(TIERS_COPY.pricingFree)
                     : (price?.formatted ?? "—")}
                 </p>
-                {id !== "free" && sellable ? (
+                {id !== "free" && hasPrice ? (
                   <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                     {t(TIERS_COPY.pricingOneTime)}
                   </p>

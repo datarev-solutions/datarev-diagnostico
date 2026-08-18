@@ -11,19 +11,22 @@ import { TIER_ORDER, TIERS, type TierId } from "./tiers";
  * advertises a price it does not honour. That is a refund conversation at best
  * and a consumer-protection problem at worst.
  *
- * So the page asks Stripe what it charges. When Stripe is not configured yet,
- * this returns nulls and the UI shows the tier with no price and no button —
- * the same runtime-capability pattern the app already uses for Google sign-in,
- * where a dead control is worse than no control.
+ * So the page asks Stripe what it charges, and falls back to the advertised
+ * list price in tiers.ts when Stripe cannot answer. The fallback is flagged
+ * with `isListPrice` so the UI can show the number but withhold the buy
+ * button — a price a visitor can read is useful; a button that cannot take
+ * their money is not.
  */
 
 export interface TierPrice {
   tier: TierId;
-  /** Minor units, as Stripe stores them (MXN cents). Null when unconfigured. */
+  /** Minor units, as Stripe stores them (MXN centavos). */
   amount: number | null;
   currency: string | null;
-  /** Formatted for display in the visitor's locale. Null when unconfigured. */
+  /** Formatted for display in the visitor's locale. */
   formatted: string | null;
+  /** True when this is the advertised price and Stripe cannot yet charge it. */
+  isListPrice: boolean;
 }
 
 function format(amount: number, currency: string, locale: string): string {
@@ -46,23 +49,46 @@ export async function getTierPrices(locale: string): Promise<TierPrice[]> {
 
   return Promise.all(
     TIER_ORDER.map(async (tier): Promise<TierPrice> => {
-      const empty: TierPrice = { tier, amount: null, currency: null, formatted: null };
-      if (!TIERS[tier].priceEnvVar) return empty; // the free tier
+      const spec = TIERS[tier];
+      const none: TierPrice = {
+        tier,
+        amount: null,
+        currency: null,
+        formatted: null,
+        isListPrice: false,
+      };
+      if (!spec.priceEnvVar) return none; // the free tier has no price at all
+
+      // The advertised price, used whenever Stripe cannot answer.
+      const list: TierPrice =
+        spec.listPrice != null
+          ? {
+              tier,
+              amount: spec.listPrice,
+              currency: spec.listCurrency ?? "mxn",
+              formatted: format(spec.listPrice, spec.listCurrency ?? "mxn", locale),
+              isListPrice: true,
+            }
+          : none;
+
       const priceId = priceIdFor(tier);
-      if (!stripe || !priceId) return empty;
+      if (!stripe || !priceId) return list;
 
       try {
         const price = await stripe.prices.retrieve(priceId);
-        if (price.unit_amount == null) return empty;
+        if (price.unit_amount == null) return list;
+        // Stripe wins: it is what actually charges the card.
         return {
           tier,
           amount: price.unit_amount,
           currency: price.currency,
           formatted: format(price.unit_amount, price.currency, locale),
+          isListPrice: false,
         };
       } catch {
-        // Wrong id, deleted price, network blip — all the same to the visitor.
-        return empty;
+        // Wrong id, deleted price, network blip — fall back to the advertised
+        // figure rather than showing a dash where a number belongs.
+        return list;
       }
     }),
   );

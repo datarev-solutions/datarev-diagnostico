@@ -129,6 +129,7 @@ export const UI = {
     es: "Reporte en PDF para llevar a comité",
     en: "A PDF report you can take to committee",
   },
+  signIn: { es: "Iniciar sesión", en: "Sign in" },
   signedInAs: { es: "Sesión de", en: "Signed in as" },
   signOut: { es: "Cerrar sesión", en: "Sign out" },
   authError: {

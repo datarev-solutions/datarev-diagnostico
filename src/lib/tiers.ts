@@ -19,9 +19,16 @@ import type { L } from "./framework";
  *      tools and reads it. Values the user has not paid for must never be
  *      serialised into the page at all; see `redactFor`.
  *
- * Prices are NOT hard-coded. They live in Stripe and are referenced by price
- * id through environment variables, so changing a price never needs a deploy
- * and a stale number can never be shown next to a live checkout.
+ * On prices: `listPrice` below is the ADVERTISED price, and Stripe is the
+ * CHARGED price. When Stripe is configured its number wins, always — it is the
+ * one that actually takes the money, and a page that advertises a figure it
+ * does not honour is a refund conversation at best.
+ *
+ * The list price exists anyway because the alternative was worse: with no
+ * Stripe account yet the pricing page rendered four tiers with a dash where
+ * the number goes, which tells a visitor nothing and tells the owner nothing
+ * either. It is also the spec for what to create in Stripe — see
+ * docs/configurar-pagos.md.
  */
 
 export type TierId = "free" | "diagnostic" | "plan" | "guided";
@@ -57,6 +64,13 @@ export interface Tier {
   pitch: L;
   /** Env var holding the Stripe price id. Absent on the free tier. */
   priceEnvVar?: string;
+  /**
+   * Advertised price in MXN centavos, matching Stripe's minor-unit convention
+   * so the two are directly comparable. Stripe's live price overrides this
+   * whenever it is configured.
+   */
+  listPrice?: number;
+  listCurrency?: string;
   /** Everything this tier unlocks, including what lower tiers already grant. */
   capabilities: Capability[];
 }
@@ -100,6 +114,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Full assessment, PDF report and a benchmark against your industry.",
     },
     priceEnvVar: "STRIPE_PRICE_DIAGNOSTIC",
+    listPrice: 49_000,
+    listCurrency: "mxn",
     capabilities: DIAGNOSTIC,
   },
   plan: {
@@ -110,6 +126,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Use cases scored for your industry and the full calculator: cloud, LLM and team.",
     },
     priceEnvVar: "STRIPE_PRICE_PLAN",
+    listPrice: 290_000,
+    listCurrency: "mxn",
     capabilities: PLAN,
   },
   guided: {
@@ -120,6 +138,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Everything above plus 60 minutes with a consultant and a validated report.",
     },
     priceEnvVar: "STRIPE_PRICE_GUIDED",
+    listPrice: 590_000,
+    listCurrency: "mxn",
     capabilities: GUIDED,
   },
 };
