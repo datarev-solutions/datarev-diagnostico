@@ -65,8 +65,8 @@ export interface Tier {
   /** Env var holding the Stripe price id. Absent on the free tier. */
   priceEnvVar?: string;
   /**
-   * Advertised price in MXN centavos, matching Stripe's minor-unit convention
-   * so the two are directly comparable. Stripe's live price overrides this
+   * Advertised price in USD cents, matching Stripe's minor-unit convention so
+   * the two are directly comparable. Stripe's live price overrides this
    * whenever it is configured.
    */
   listPrice?: number;
@@ -114,8 +114,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Full assessment, PDF report and a benchmark against your industry.",
     },
     priceEnvVar: "STRIPE_PRICE_DIAGNOSTIC",
-    listPrice: 49_000,
-    listCurrency: "mxn",
+    listPrice: 2_900,
+    listCurrency: "usd",
     capabilities: DIAGNOSTIC,
   },
   plan: {
@@ -126,8 +126,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Use cases scored for your industry and the full calculator: cloud, LLM and team.",
     },
     priceEnvVar: "STRIPE_PRICE_PLAN",
-    listPrice: 290_000,
-    listCurrency: "mxn",
+    listPrice: 14_900,
+    listCurrency: "usd",
     capabilities: PLAN,
   },
   guided: {
@@ -138,8 +138,8 @@ export const TIERS: Record<TierId, Tier> = {
       en: "Everything above plus 60 minutes with a consultant and a validated report.",
     },
     priceEnvVar: "STRIPE_PRICE_GUIDED",
-    listPrice: 590_000,
-    listCurrency: "mxn",
+    listPrice: 29_900,
+    listCurrency: "usd",
     capabilities: GUIDED,
   },
 };

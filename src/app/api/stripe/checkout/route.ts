@@ -80,11 +80,11 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ price: priceId, quantity: 1 }],
-      // The price must be denominated in MXN (or be a multi-currency price that
+      // The price must be denominated in USD (or be a multi-currency price that
       // includes it) — Stripe rejects the session if this disagrees with the
       // price, which is the failure we want: loudly, here, rather than charging
       // someone in the wrong currency.
-      currency: "mxn",
+      currency: "usd",
       // Both are echoed back on the webhook event, and this is the only way the
       // fulfilment side learns who paid for what. `client_reference_id` is the
       // documented slot for our own user id; metadata carries the tier.

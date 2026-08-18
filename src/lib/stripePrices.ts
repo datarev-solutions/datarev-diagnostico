@@ -20,7 +20,7 @@ import { TIER_ORDER, TIERS, type TierId } from "./tiers";
 
 export interface TierPrice {
   tier: TierId;
-  /** Minor units, as Stripe stores them (MXN centavos). */
+  /** Minor units, as Stripe stores them (USD cents). */
   amount: number | null;
   currency: string | null;
   /** Formatted for display in the visitor's locale. */
@@ -65,8 +65,8 @@ export async function getTierPrices(locale: string): Promise<TierPrice[]> {
           ? {
               tier,
               amount: spec.listPrice,
-              currency: spec.listCurrency ?? "mxn",
-              formatted: format(spec.listPrice, spec.listCurrency ?? "mxn", locale),
+              currency: spec.listCurrency ?? "usd",
+              formatted: format(spec.listPrice, spec.listCurrency ?? "usd", locale),
               isListPrice: true,
             }
           : none;

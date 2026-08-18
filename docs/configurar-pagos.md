@@ -12,17 +12,27 @@ el proveedor está activo. Un control muerto es peor que ningún control.
 ## 1. Crear los productos en Stripe
 
 En el dashboard de Stripe → **Productos** → crear tres, todos con precio
-**único** (no recurrente) y moneda **MXN**:
+**único** (no recurrente) y moneda **USD**:
 
 | Producto | Precio | Para qué es |
 |---|---|---|
-| DataRev · Diagnóstico | **$490 MXN** | Filtro. A precio de comida corrida, pero pedir tarjeta elimina a los mirones. |
-| DataRev · Plan | **$2,900 MXN** | El prospecto con proyecto real. |
-| DataRev · Sesión guiada | **$5,900 MXN** | El que ya está listo para hablar. Incluye 60 min de consultor. |
+| DataRev · Diagnóstico | **$29 USD** | Filtro. Barato a propósito, pero pedir tarjeta elimina a los mirones. |
+| DataRev · Plan | **$149 USD** | El prospecto con proyecto real. |
+| DataRev · Sesión guiada | **$299 USD** | El que ya está listo para hablar. Incluye 60 min de consultor. |
+
+La moneda **tiene que ser USD**: la ruta de checkout rechaza un precio en otra
+moneda a propósito, para que nadie termine cobrado en la divisa equivocada.
+
+> **Nota para el comprador mexicano.** Cobrar en dólares funciona sin problema
+> con tarjeta, pero el cliente ve el cargo convertido por su banco y con la
+> comisión por transacción internacional que cada banco aplique. Si eso genera
+> fricción en tu mercado, crea precios multi-moneda en Stripe y cambia
+> `currency` en `src/app/api/stripe/checkout/route.ts`.
 
 > **Por qué la sesión no puede costar menos.** Una hora de consultor te cuesta
 > entre 52 y 73 USD sólo en entrega, y con preparación y seguimiento realista se
-> va a 100–150. Los números salen de `src/lib/rateCard.ts`, que deriva la tarifa
+> va a 100–150. A $299 el margen es sano; abajo de ~$150 estarías regalando
+> tiempo de consultor. Los números salen de `src/lib/rateCard.ts`, que deriva la tarifa
 > del salario publicado pasando por carga patronal y utilización. Si pones los
 > 60 minutos en un tier barato, pierdes dinero en cada venta.
 
