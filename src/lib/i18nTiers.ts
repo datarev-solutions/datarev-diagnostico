@@ -44,8 +44,12 @@ export const TIERS_COPY = {
   pricingIncludes: { es: "Incluye", en: "Includes" },
 
   hiddenUntilPurchase: {
-    es: "La cifra se calcula en el servidor y no viaja al navegador hasta que la compras. Aquí ves la estructura del cálculo —cuántas líneas, qué categorías, en qué unidad—, no el número.",
-    en: "The figure is computed on the server and is not sent to your browser until you buy it. What you see here is the shape of the calculation — how many lines, which categories, in what unit — not the number.",
+    // Deliberately does NOT claim the figure is computed server-side. Today it
+    // is not: the model still runs in the browser, and printing a promise the
+    // product does not keep is worse than printing nothing. Revisit this
+    // wording if and when the calculation moves behind the API.
+    es: "Aquí ves la estructura del cálculo —cuántas líneas, qué categorías, en qué unidad—, no el número.",
+    en: "What you see here is the shape of the calculation — how many lines, which categories, in what unit — not the number.",
   },
 } satisfies Record<string, L>;
 
