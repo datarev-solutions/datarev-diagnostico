@@ -170,31 +170,22 @@ export function LeadGate({ state, result }: LeadGateProps) {
               {t(UI.gateLead)}
             </p>
 
-            {/* Only rendered once the provider is actually switched on in
-                Supabase — a Google button that dead-ends costs more leads than
-                no Google button at all. */}
-            {googleEnabled ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void signInWithGoogle("/results")}
-                  className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)] px-4 py-2.5 text-[13.5px] font-semibold transition hover:bg-[var(--surface-3)]"
-                >
-                  <GoogleMark />
-                  {t(UI.gateGoogle)}
-                </button>
+            <button
+              type="button"
+              onClick={() => void signInWithGoogle("/results")}
+              className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)] px-4 py-2.5 text-[13.5px] font-semibold transition hover:bg-[var(--surface-3)]"
+            >
+              <GoogleMark />
+              {t(UI.gateGoogle)}
+            </button>
 
-                <div className="my-5 flex items-center gap-3">
-                  <span className="h-px flex-1 bg-[var(--border)]" />
-                  <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
-                    {t(UI.gateOr)}
-                  </span>
-                  <span className="h-px flex-1 bg-[var(--border)]" />
-                </div>
-              </>
-            ) : (
-              <div className="mt-6" />
-            )}
+            <div className="my-5 flex items-center gap-3">
+              <span className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                {t(UI.gateOr)}
+              </span>
+              <span className="h-px flex-1 bg-[var(--border)]" />
+            </div>
 
             <form onSubmit={submit} className="space-y-3">
               <Field

@@ -13,6 +13,7 @@ import { APQC_CATEGORY, topProcesses } from "@/lib/processes";
 import { quadrantOfScored, scoreFor } from "@/lib/useCaseScoring";
 import { expandStack } from "@/lib/stack";
 import { getUseCaseAgenticClassification } from "@/lib/agenticGovernance";
+import { AgenticGovernanceCalculator } from "@/components/AgenticGovernanceCalculator";
 import { UC } from "@/lib/i18nUseCases";
 import { ACTOR_LABEL, actorsIn, RACI_LABEL, raciFor } from "@/lib/raci";
 import { Gated } from "@/components/Gate";
@@ -467,6 +468,11 @@ export function UseCasesClient({ tier }: { tier: TierId }) {
             </p>
           </section>
         )}
+
+        {/* Interactive Agentic & EU AI Act Risk Diagnostic Calculator */}
+        <div className="no-print mb-8">
+          <AgenticGovernanceCalculator />
+        </div>
 
         {/* Catalogue */}
         <section className="card card-lit avoid-break mb-6 p-6">

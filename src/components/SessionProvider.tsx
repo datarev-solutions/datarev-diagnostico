@@ -114,7 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(true);
 
   const lead = useSyncExternalStore(
     leadStore.subscribe,
@@ -143,27 +143,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       subscription.subscription.unsubscribe();
     };
   }, [supabase]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) return;
-
-    fetch(`${url}/auth/v1/settings`, {
-      headers: { apikey: key },
-      signal: controller.signal,
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((settings) => {
-        setGoogleEnabled(Boolean(settings?.external?.google));
-      })
-      .catch(() => {
-        // Offline or blocked: fall back to the email form, which always works.
-      });
-
-    return () => controller.abort();
-  }, []);
 
   const rememberLead = useCallback((next: CapturedLead) => {
     leadStore.write(next);

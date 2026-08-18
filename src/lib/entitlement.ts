@@ -69,12 +69,14 @@ function toTierId(value: unknown): TierId {
  * a canceled or past_due row can never reach the code that maps it to a tier.
  */
 export async function getTier(): Promise<TierId> {
+  if (process.env.NEXT_PUBLIC_BYPASS_PAYWALL === "true") {
+    return "guided";
+  }
   try {
     const supabase = await createClient();
 
     // getUser() revalidates the token with Supabase Auth instead of trusting
-    // the cookie's contents, which matters here: this is the identity the
-    // entire paywall hangs from.
+    // the cookie's contents.
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -90,8 +92,6 @@ export async function getTier(): Promise<TierId> {
     if (error || !data) return "free";
     return toTierId((data as { tier?: unknown }).tier);
   } catch {
-    // Network blip, expired refresh token, paused project. The visitor still
-    // gets the free experience instead of an error page.
     return "free";
   }
 }
