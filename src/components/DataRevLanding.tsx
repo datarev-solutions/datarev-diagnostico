@@ -571,14 +571,20 @@ export function DataRevLanding() {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center gap-6 text-[0.92rem] font-semibold text-[#06283a]">
+            <nav className="hidden md:flex items-center gap-5 text-[0.88rem] font-semibold text-[#06283a]">
               <a href="#enfoque" className="hover:text-[#021019] transition-colors">{t("nav_enfoque")}</a>
               <a href="#servicios" className="hover:text-[#021019] transition-colors">{t("nav_servicios")}</a>
               <a href="#talento" className="hover:text-[#021019] transition-colors">{t("nav_talento")}</a>
               <a href="#diferencia" className="hover:text-[#021019] transition-colors">{t("nav_diferencia")}</a>
               <a href="#proceso" className="hover:text-[#021019] transition-colors">{t("nav_proceso")}</a>
               <a href="#diagnostico" className="hover:text-[#021019] transition-colors">{t("nav_diag")}</a>
-              <a href="#impacto" className="hover:text-[#021019] transition-colors">{t("nav_impacto")}</a>
+              <Link href="/calculadora" className="hover:text-[#021019] transition-colors flex items-center gap-1 font-bold text-[#04081f]">
+                <span>Calculadoras</span>
+                <span className="text-[10px] bg-[#04081f] text-white px-1.5 py-0.5 rounded-full">Pro</span>
+              </Link>
+              <Link href="/assessment" className="hover:text-[#021019] transition-colors font-bold text-[#04081f]">
+                Diagnóstico 40p
+              </Link>
               <a href="#contacto" className="hover:text-[#021019] transition-colors">{t("nav_contacto")}</a>
             </nav>
 
@@ -639,7 +645,10 @@ export function DataRevLanding() {
               <a href="#diferencia" onClick={() => setNavOpen(false)}>{t("nav_diferencia")}</a>
               <a href="#proceso" onClick={() => setNavOpen(false)}>{t("nav_proceso")}</a>
               <a href="#diagnostico" onClick={() => setNavOpen(false)}>{t("nav_diag")}</a>
-              <a href="#impacto" onClick={() => setNavOpen(false)}>{t("nav_impacto")}</a>
+              <Link href="/calculadora" onClick={() => setNavOpen(false)} className="text-[#00c2ff]">Calculadoras (Build vs Buy, LLM Cost, Agentic)</Link>
+              <Link href="/assessment" onClick={() => setNavOpen(false)} className="text-[#00c2ff]">Diagnóstico Completo 40p</Link>
+              <Link href="/casos-de-uso" onClick={() => setNavOpen(false)}>Casos de Uso AI</Link>
+              <Link href="/labs" onClick={() => setNavOpen(false)}>GraphRAG & AI Labs</Link>
               <a href="#contacto" onClick={() => setNavOpen(false)}>{t("nav_contacto")}</a>
               <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
                 <Link
@@ -1103,6 +1112,152 @@ export function DataRevLanding() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* ================= ADVANCED TOOLS & CALCULATORS SECTION ================= */}
+        <section id="herramientas" className="py-20 bg-gradient-to-b from-[#08123a]/60 via-[#101c48]/40 to-transparent border-y border-white/10">
+          <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
+            <div className="max-w-2xl mb-12">
+              <span className="text-xs font-semibold tracking-widest text-[#5fd8ff] uppercase flex items-center gap-2">
+                <span className="w-6 h-px bg-gradient-to-r from-[#00c2ff] to-transparent" />
+                <span>Herramientas Interactivas</span>
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-bold mt-3 leading-tight">
+                Suite de Calculadoras y Diagnósticos Avanzados
+              </h2>
+              <p className="mt-4 text-[#aab4d4] text-sm sm:text-base leading-relaxed">
+                Herramientas interactivas diseñadas para calcular costos de LLMs, evaluar Build vs Buy, clasificar riesgos agénticos y medir la madurez de datos e IA de tu empresa.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Build vs Buy */}
+              <div className="p-6 rounded-2xl border border-[#00c2ff]/30 bg-[#101c48]/60 backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff] transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    ⚖️
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#00c2ff]">Calculadora Principal</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">Build vs. Buy</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Compara el costo total de propiedad (TCO) de desarrollar internamente versus adquirir una solución SaaS o consultoría especializada.
+                  </p>
+                </div>
+                <Link
+                  href="/calculadora#build-vs-buy"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Probar Calculadora</span>
+                  <span>→</span>
+                </Link>
+              </div>
+
+              {/* LLM Cost Calculator */}
+              <div className="p-6 rounded-2xl border border-white/15 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff]/60 transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    ⚡
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#5fd8ff]">Simulador de Modelos</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">Calculadora de Costos LLM</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Proyecta el consumo mensual de tokens, llamadas API y costos operativos entre Claude 3.5, GPT-4o y Gemini 1.5.
+                  </p>
+                </div>
+                <Link
+                  href="/calculadora#llm-cost"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Calcular Costos LLM</span>
+                  <span>→</span>
+                </Link>
+              </div>
+
+              {/* Agentic Governance */}
+              <div className="p-6 rounded-2xl border border-white/15 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff]/60 transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    🛡️
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#5fd8ff]">Cumplimiento & Risk</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">Gobernanza Agéntica & EU AI Act</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Evalúa la viabilidad técnica de agentes autónomos y clasifica tus sistemas de IA según los niveles de riesgo del EU AI Act.
+                  </p>
+                </div>
+                <Link
+                  href="/calculadora#agentic-governance"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Evaluar Gobernanza</span>
+                  <span>→</span>
+                </Link>
+              </div>
+
+              {/* Diagnóstico 40p */}
+              <div className="p-6 rounded-2xl border border-white/15 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff]/60 transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    📊
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#5fd8ff]">Diagnóstico Profundo</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">Diagnóstico Completo 40p</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Evaluación exhaustiva de 8 dimensiones organizacionales, scoring denormalizado y blueprint de ejecución en PDF.
+                  </p>
+                </div>
+                <Link
+                  href="/assessment"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Iniciar 40 Preguntas</span>
+                  <span>→</span>
+                </Link>
+              </div>
+
+              {/* Casos de Uso */}
+              <div className="p-6 rounded-2xl border border-white/15 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff]/60 transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    🚀
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#5fd8ff]">Estrategia AI</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">Evaluador de Casos de Uso</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Prioriza casos de uso de IA por impacto estratégico, factibilidad técnica y retorno de inversión esperado.
+                  </p>
+                </div>
+                <Link
+                  href="/casos-de-uso"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Explorar Casos de Uso</span>
+                  <span>→</span>
+                </Link>
+              </div>
+
+              {/* GraphRAG & AI Labs */}
+              <div className="p-6 rounded-2xl border border-white/15 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#00c2ff]/60 transition flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-[#00c2ff]/10 flex items-center justify-center mb-4 text-[#00c2ff] font-bold">
+                    🔬
+                  </div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#5fd8ff]">Laboratorio RAG</span>
+                  <h3 className="text-xl font-bold text-white mt-1 mb-2">GraphRAG & AI Labs</h3>
+                  <p className="text-xs text-[#aab4d4] leading-relaxed">
+                    Simulador interactivo de arquitectura GraphRAG, harness de agentes MCP y ontologías comparativas.
+                  </p>
+                </div>
+                <Link
+                  href="/labs"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00c2ff] group-hover:text-white transition"
+                >
+                  <span>Abrir Simuladores</span>
+                  <span>→</span>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
