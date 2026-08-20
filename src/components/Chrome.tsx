@@ -116,6 +116,7 @@ function Nav() {
 
   const tabs = [
     { href: "/", label: t(UI.appName), match: (p: string) => p === "/" || p.startsWith("/assessment") || p.startsWith("/results") },
+    { href: "/solutions", label: "Soluciones", match: (p: string) => p.startsWith("/solutions") },
     { href: "/casos-de-uso", label: t(UC.navLabel), match: (p: string) => p.startsWith("/casos-de-uso") },
     { href: "/calculadora", label: t(CALC.navLabel), match: (p: string) => p.startsWith("/calculadora") },
     { href: "/labs", label: t(LABS.navLabel), match: (p: string) => p.startsWith("/labs") },

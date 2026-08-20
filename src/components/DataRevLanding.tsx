@@ -564,7 +564,7 @@ export function DataRevLanding() {
           }`}
         >
           <div className="max-w-[1180px] mx-auto px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
-            <Link href="#top" className="flex items-center gap-2 group" aria-label="DataRev">
+            <Link href="/" className="flex items-center gap-2 group" aria-label="DataRev">
               <span className="font-bold text-xl tracking-tight text-[#04081f] group-hover:opacity-90">
                 DATA<span className="text-[#0a2bb0]">REV</span>
               </span>
