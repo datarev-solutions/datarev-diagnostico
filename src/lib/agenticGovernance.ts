@@ -1,19 +1,17 @@
 /**
- * Agentic Feasibility & EU AI Act Governance Classifier — DataRev AI Strategy
- * 
- * 1. Agentic Feasibility Scorer:
- *    Evaluates process determinism, API maturity, data structure, error tolerance,
- *    and human-in-the-loop points to determine readiness for:
- *    - Augmentation (Copilot)
- *    - Semi-Autonomous Agent
- *    - Fully Autonomous Multi-Agent Orchestration
- * 
- * 2. EU AI Act Governance Classifier (August 2026 Active Framework):
- *    Classifies workflows into EU AI Act Risk Tiers:
- *    - Minimal Risk
- *    - Specific Transparency Risk (Art. 50)
- *    - High Risk (Annex III)
- *    - Prohibited (Art. 5)
+ * Agentic Feasibility Scorer — DataRev AI Strategy
+ *
+ * Evaluates process determinism, API maturity, data structure, error tolerance,
+ * and human-in-the-loop points to determine readiness for:
+ *   - Augmentation (Copilot)
+ *   - Semi-Autonomous Agent
+ *   - Fully Autonomous Multi-Agent Orchestration
+ *
+ * This asks "can it be automated", which is a separate question from "may it
+ * be". Regulatory classification lives in `compliance.ts`, which covers every
+ * jurisdiction rather than only the EU AI Act — an earlier version of this file
+ * carried a single EU-only classifier and it has been retired, so that AI Act
+ * tiering exists in exactly one place and cannot drift out of date twice over.
  */
 
 export type ProcessDeterminism = 'rule_based' | 'semi_structured' | 'unstructured_creative';
@@ -39,30 +37,6 @@ export interface AgenticFeasibilityResult {
   description: string;
   technicalPrerequisites: string[];
   riskWarnings: string[];
-}
-
-export type DeploymentDomain =
-  | 'recruitment_hr'
-  | 'financial_credit_scoring'
-  | 'biometric_identification'
-  | 'customer_support'
-  | 'internal_analytics'
-  | 'critical_infrastructure';
-
-export interface EuAiActInputs {
-  domain: DeploymentDomain;
-  autonomousDecisioning: boolean;
-  userExposure: 'internal_employee' | 'public_consumer';
-}
-
-export type EuAiActRiskTier = 'minimal' | 'transparency_art50' | 'high_risk_annex3' | 'prohibited_art5';
-
-export interface EuAiActResult {
-  tier: EuAiActRiskTier;
-  tierTitle: string;
-  badgeColor: 'good' | 'warning' | 'series-2' | 'prohibited';
-  summary: string;
-  mandatoryComplianceChecklist: string[];
 }
 
 // -----------------------------------------------------------------------------
@@ -143,75 +117,6 @@ export function evaluateAgenticFeasibility(inputs: AgenticFeasibilityInputs): Ag
     description,
     technicalPrerequisites,
     riskWarnings,
-  };
-}
-
-// -----------------------------------------------------------------------------
-// 2. EU AI Act Governance Classifier
-// -----------------------------------------------------------------------------
-
-export function classifyEuAiActRisk(inputs: EuAiActInputs): EuAiActResult {
-  // Prohibited Check (Art 5): Biometric categorization or social scoring with autonomous legal impact
-  if (inputs.domain === 'biometric_identification' && inputs.autonomousDecisioning) {
-    return {
-      tier: 'prohibited_art5',
-      tierTitle: 'Prohibited AI System (Art. 5)',
-      badgeColor: 'prohibited',
-      summary: 'Biometric categorization or autonomous evaluation without human oversight is strictly prohibited under EU AI Act Article 5.',
-      mandatoryComplianceChecklist: [
-        'System deployment prohibited in EU jurisdiction.',
-        'Redesign workflow to remove autonomous biometric evaluation.',
-      ],
-    };
-  }
-
-  // High Risk Check (Annex III): HR/Recruitment, Credit Scoring, Critical Infrastructure
-  const isHighRiskDomain =
-    inputs.domain === 'recruitment_hr' ||
-    inputs.domain === 'financial_credit_scoring' ||
-    inputs.domain === 'critical_infrastructure';
-
-  if (isHighRiskDomain || (inputs.autonomousDecisioning && inputs.userExposure === 'public_consumer')) {
-    return {
-      tier: 'high_risk_annex3',
-      tierTitle: 'High Risk AI System (Annex III)',
-      badgeColor: 'warning',
-      summary: 'Workflows involving employment screening, credit scoring, or critical services fall under EU AI Act Annex III High-Risk regulation.',
-      mandatoryComplianceChecklist: [
-        'Mandatory Fundamental Rights Impact Assessment (FRIA).',
-        'Continuous risk management system & bias audit logging.',
-        'Human oversight protocols (Art. 14) with override capability.',
-        'Technical documentation & registration in EU AI Database.',
-        'System logging with 6+ month tamper-proof retention.',
-      ],
-    };
-  }
-
-  // Specific Transparency Check (Art 50): Customer-facing chatbots or synthetic media
-  if (inputs.domain === 'customer_support' || inputs.userExposure === 'public_consumer') {
-    return {
-      tier: 'transparency_art50',
-      tierTitle: 'Specific Transparency Risk (Art. 50)',
-      badgeColor: 'series-2',
-      summary: 'Public-facing AI interaction requires explicit disclosure that the user is interacting with an artificial intelligence system (Article 50).',
-      mandatoryComplianceChecklist: [
-        'Clear upfront notice stating "You are communicating with an AI system".',
-        'Watermarking or disclosure of generated synthetic media.',
-        'Opt-out or transfer option to a human agent.',
-      ],
-    };
-  }
-
-  // Minimal Risk
-  return {
-    tier: 'minimal',
-    tierTitle: 'Minimal Risk System',
-    badgeColor: 'good',
-    summary: 'Internal operational AI analytics with human oversight present minimal regulatory risk under the EU AI Act.',
-    mandatoryComplianceChecklist: [
-      'Voluntary code of conduct adherence.',
-      'Basic internal data privacy & security standards.',
-    ],
   };
 }
 
