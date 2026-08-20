@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BROCHURE, DATAREV } from "@/lib/datarev";
 import { UI } from "@/lib/i18n";
 import { CALC } from "@/lib/i18nCalc";
+import { LABS } from "@/lib/i18nLabs";
 import { TIERS_COPY } from "@/lib/i18nTiers";
 import { UC } from "@/lib/i18nUseCases";
 import { useApp } from "./AppProvider";
@@ -117,6 +118,7 @@ function Nav() {
     { href: "/", label: t(UI.appName), match: (p: string) => p === "/" || p.startsWith("/assessment") || p.startsWith("/results") },
     { href: "/casos-de-uso", label: t(UC.navLabel), match: (p: string) => p.startsWith("/casos-de-uso") },
     { href: "/calculadora", label: t(CALC.navLabel), match: (p: string) => p.startsWith("/calculadora") },
+    { href: "/labs", label: t(LABS.navLabel), match: (p: string) => p.startsWith("/labs") },
     { href: "/precios", label: t(TIERS_COPY.pricingTitle), match: (p: string) => p.startsWith("/precios") },
   ];
 

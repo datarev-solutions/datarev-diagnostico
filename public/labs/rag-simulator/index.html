@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  /* Language toggle */
+  .lang-toggle { position: fixed; top: 14px; right: 14px; display: flex; background: #1e293b; border: 1px solid #334155; border-radius: 20px; overflow: hidden; z-index: 100; }
+  .lang-toggle button { background: transparent; border: none; color: #94a3b8; padding: 6px 14px; cursor: pointer; font-weight: 700; font-size: 12px; transition: all 0.2s; }
+  .lang-toggle button.active { background: linear-gradient(135deg, #1763ff, #7a1020); color: #fff; }
+
+  /* Header */
+  .header { text-align: center; padding: 56px 20px 8px; }
+  .header h1 { font-size: 26px; background: linear-gradient(135deg, #1763ff, #e0506a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header p { color: #64748b; margin-top: 4px; font-size: 13px; }
+
+  /* DataRev lockup (top-left) */
+  .dr-lockup { position: fixed; top: 12px; left: 16px; display: flex; align-items: center; gap: 10px; z-index: 100; }
+  .dr-lockup img { height: 26px; width: auto; display: block; }
+  .dr-lockup .dr-div { width: 1px; height: 24px; background: #334155; }
+  .dr-lockup .dr-pe { font-size: 9px; line-height: 1.2; letter-spacing: 1.2px; color: #A3978F; text-transform: uppercase; font-weight: 700; text-align: left; }
+  /* DataRev accent rule across the very top */
+  body { border-top: 3px solid #1763ff; }
+  @media (max-width: 560px) { .dr-lockup .dr-pe { display: none; } .header { padding-top: 52px; } }
+
+  /* Pipeline nav */
+  .pipeline { display: flex; justify-content: center; gap: 4px; padding: 16px 10px; flex-wrap: wrap; }
+  .pip { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 8px 14px; font-size: 12px; display: flex; align-items: center; gap: 5px; transition: all 0.4s; cursor: pointer; user-select: none; }
+  .pip.active { border-color: #e0506a; background: #2a0e13; box-shadow: 0 0 16px rgba(23, 99, 255, 0.28); }
+  .pip.done { border-color: #34d399; background: #064e3b; }
+  .pip.locked { opacity: 0.4; cursor: default; }
+  .pip-arrow { color: #334155; font-size: 14px; display: flex; align-items: center; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* Step card */
+  .step-card { background: #1e293b; border: 1px solid #334155; border-radius: 14px; overflow: visible; margin-top: 12px; animation: fadeUp 0.35s ease; }
+  .step-header { padding: 20px 24px 16px; border-bottom: 1px solid #1e293b; }
+  .step-num { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #e0506a; font-weight: 700; }
+  .step-title { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .step-desc { color: #94a3b8; font-size: 14px; line-height: 1.6; margin-top: 8px; }
+  .step-body { padding: 20px 24px; }
+
+  /* Explanation callout */
+  .callout { background: #0f172a; border-left: 3px solid #e0506a; border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; color: #cbd5e1; }
+  .callout strong { color: #f0a3ad; }
+  .callout code { background: #1e293b; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #f472b6; }
+
+  /* Analogy box */
+  .analogy { background: linear-gradient(135deg, #2a0e13, #1e293b); border: 1px solid #8e1b2c; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6; }
+  .analogy-label { color: #e07a8a; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: 700; }
+
+  /* Visual blocks */
+  .vis-grid { display: grid; gap: 10px; margin: 12px 0; }
+  .vis-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 13px; transition: all 0.4s; }
+  .vis-card.highlight { border-color: #e0506a; background: #2a0e13; }
+  .vis-card.match { border-color: #34d399; background: #064e3b; }
+  .vis-label { font-weight: 600; color: #e0506a; margin-bottom: 4px; font-size: 12px; }
+  .vis-text { color: #94a3b8; line-height: 1.5; }
+  .vis-tag { display: inline-block; background: #334155; border-radius: 4px; padding: 2px 8px; font-size: 11px; color: #94a3b8; margin: 2px; }
+  .vis-tag.active { background: #8e1b2c; color: #f2b0ba; }
+
+  /* Chunk pills */
+  .chunk-pill { display: inline-block; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px 10px; margin: 3px; font-size: 11px; color: #94a3b8; transition: all 0.3s; }
+  .chunk-pill.c0 { border-color: #e0506a; color: #f0a3ad; }
+  .chunk-pill.c1 { border-color: #f472b6; color: #f9a8d4; }
+  .chunk-pill.c2 { border-color: #34d399; color: #6ee7b7; }
+  .chunk-pill.overlap { background: #4a1942; border-color: #f472b6; }
+
+  /* Embedding viz */
+  .emb-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .emb-word { width: 90px; text-align: right; font-size: 12px; color: #94a3b8; flex-shrink: 0; font-family: monospace; }
+  .emb-bar-bg { flex: 1; height: 20px; background: #0f172a; border-radius: 4px; overflow: hidden; position: relative; }
+  .emb-bar { height: 100%; border-radius: 4px; transition: width 0.8s ease; display: flex; align-items: center; padding-left: 6px; font-size: 10px; color: white; font-weight: 600; }
+  .emb-val { width: 50px; text-align: right; font-size: 11px; color: #64748b; font-family: monospace; flex-shrink: 0; }
+
+  /* Vector DB table */
+  .vdb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .vdb-table th { text-align: left; padding: 8px; color: #64748b; border-bottom: 1px solid #334155; font-weight: 600; }
+  .vdb-table td { padding: 8px; border-bottom: 1px solid #1e293b; color: #94a3b8; }
+  .vdb-table tr:hover { background: #2a0e1322; }
+  .vdb-mini { display: flex; gap: 1px; align-items: flex-end; height: 16px; }
+  .vdb-mini-bar { width: 3px; background: #e0506a; border-radius: 1px; transition: height 0.5s ease; }
+
+  /* Similarity */
+  .sim-card { background: #0f172a; border-radius: 10px; padding: 14px; margin-bottom: 10px; border-left: 4px solid transparent; transition: all 0.4s; }
+  .sim-card.rank-1 { border-left-color: #fbbf24; }
+  .sim-card.rank-2 { border-left-color: #94a3b8; }
+  .sim-card.rank-3 { border-left-color: #78716c; }
+  .sim-score { font-size: 28px; font-weight: 800; }
+  .sim-bar { height: 6px; background: #1e293b; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .sim-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+  /* LLM response */
+  .llm-box { background: linear-gradient(135deg, #2a0e13, #1e293b); border: 1px solid #8e1b2c; border-radius: 12px; padding: 20px; }
+  .llm-thinking { color: #e07a8a; font-size: 12px; margin-bottom: 12px; }
+  .llm-answer { font-size: 15px; line-height: 1.7; }
+  .llm-source { display: inline-block; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 4px 10px; font-size: 11px; margin: 4px 2px; color: #e0506a; }
+
+  /* Controls */
+  .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 12px; flex-wrap: wrap; }
+  .btn { border: none; border-radius: 10px; padding: 12px 28px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .btn-primary { background: linear-gradient(135deg, #1763ff, #7a1020); color: white; }
+  .btn-ghost { background: transparent; border: 1px solid #334155; color: #94a3b8; }
+  .btn-ghost:hover { border-color: #e0506a; color: #f2b0ba; }
+  .btn-reset { background: #1e293b; border: 1px solid #334155; color: #94a3b8; }
+  .step-counter { color: #64748b; font-size: 13px; }
+
+  /* Query input */
+  .query-section { margin-top: 16px; }
+  .query-box { display: flex; gap: 10px; }
+  .query-input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px 16px; color: #e2e8f0; font-size: 14px; outline: none; }
+  .query-input:focus { border-color: #e0506a; }
+  .presets { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .preset { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #94a3b8; cursor: pointer; transition: all 0.2s; }
+  .preset:hover { border-color: #e0506a; color: #f2b0ba; }
+
+  /* Arrow animation */
+  .arrow-flow { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 14px 0; color: #475569; font-size: 18px; flex-wrap: wrap; }
+  .arrow-flow .arrow { animation: arrowPulse 1.5s ease infinite; }
+  @keyframes arrowPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; color: #e0506a; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hidden { display: none; }
+
+  /* Cosine formula */
+  .formula { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; text-align: center; font-family: 'Georgia', serif; font-size: 16px; color: #f2b0ba; margin: 12px 0; letter-spacing: 0.5px; }
+
+  /* Mode tabs (RAG / GraphRAG) */
+  .mode-tabs { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .mode-tabs button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 10px; padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .mode-tabs button:hover:not(.active) { border-color: #e0506a; color: #f2b0ba; }
+  .mode-tabs button.active { background: linear-gradient(135deg, #1763ff, #7a1020); color: #fff; border-color: transparent; }
+  .mode-tabs button.active[data-mode="graphrag"] { background: linear-gradient(135deg, #0d9488, #0ea5e9); }
+  .mode-tabs button.active[data-mode="advanced"] { background: linear-gradient(135deg, #ea580c, #f59e0b); }
+  .mode-tabs button.active[data-mode="harness"] { background: linear-gradient(135deg, #7c3aed, #a970d0); }
+
+  /* Glossary term tooltips */
+  .term { border-bottom: 1px dotted #e0506a; cursor: help; position: relative; }
+  .term > .tip {
+    visibility: hidden; opacity: 0; transition: opacity 0.12s ease;
+    position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%);
+    width: max-content; max-width: 260px;
+    background: #0b1120; border: 1px solid #e0506a; color: #e2e8f0;
+    font-size: 12px; font-weight: 400; line-height: 1.5; text-align: left; letter-spacing: normal;
+    padding: 9px 11px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+    z-index: 300; pointer-events: none; white-space: normal;
+  }
+  .term > .tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #e0506a; }
+  .term:hover > .tip, .term:focus > .tip, .term.show > .tip { visibility: visible; opacity: 1; }
+  .ar-mem-link:hover { fill: #e0506a; }
+
+  /* Architecture-box popover */
+  .arch-box { transition: filter 0.12s ease; }
+  .arch-box:hover { filter: brightness(1.28); }
+  .arch-tip { position: fixed; z-index: 400; display: none; max-width: 250px; background: #0b1120; border: 1px solid #f59e0b; color: #e2e8f0; font-size: 12px; line-height: 1.5; padding: 9px 11px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.55); pointer-events: none; }
+
+  /* Memory summary modal */
+  .mem-overlay { position: fixed; inset: 0; background: rgba(3,6,15,0.74); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); z-index: 500; display: flex; align-items: flex-start; justify-content: center; padding: 30px 16px; overflow-y: auto; animation: memFade 0.18s ease; }
+  @keyframes memFade { from { opacity: 0; } to { opacity: 1; } }
+  .mem-card { background: #12161f; border: 1px solid #334155; border-radius: 16px; max-width: 880px; width: 100%; padding: 26px 26px 22px; position: relative; box-shadow: 0 24px 70px rgba(0,0,0,0.6); animation: memRise 0.22s ease; }
+  @keyframes memRise { from { transform: translateY(12px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+  .mem-close { position: absolute; top: 14px; right: 14px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .mem-close:hover { border-color: #e0506a; color: #f0a3ad; }
+  .mem-eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #e0506a; font-weight: 700; }
+  .mem-card h2 { font-size: 21px; margin: 6px 40px 6px 0; color: #e2e8f0; text-wrap: balance; }
+  .mem-sub { color: #94a3b8; font-size: 13.5px; line-height: 1.55; margin-bottom: 18px; max-width: 68ch; }
+  .mem-pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 680px) { .mem-pillars { grid-template-columns: 1fr; } }
+  .mem-pillar { background: #0f172a; border: 1px solid #334155; border-top-width: 3px; border-radius: 10px; padding: 13px 14px; }
+  .mem-pillar h3 { font-size: 14px; margin: 0; }
+  .mem-pillar .pq { font-size: 11px; color: #64748b; margin: 3px 0 11px; line-height: 1.4; }
+  .mem-item { margin-bottom: 9px; }
+  .mem-item .k { font-size: 12.5px; font-weight: 700; color: #cbd5e1; }
+  .mem-item .v { font-size: 11.5px; color: #94a3b8; line-height: 1.45; }
+  .mem-tie { margin-top: 16px; background: #2a0e13; border-left: 3px solid #e0506a; border-radius: 0 8px 8px 0; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; color: #cbd5e1; }
+  .mem-frontiers { margin-top: 10px; font-size: 11.5px; color: #64748b; line-height: 1.5; }
+  .mem-cite { margin-top: 12px; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b; padding-top: 10px; }
+
+  /* GraphRAG tab */
+  .gr-ent { border-bottom: 1px solid; font-weight: 600; }
+  .gr-triple { display: inline-block; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 4px 9px; margin: 3px; font-size: 11px; color: #cbd5e1; }
+  .gr-rel { color: #f472b6; font-style: italic; margin: 0 3px; }
+  .gr-svg-wrap { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 8px; margin: 12px 0; }
+  .gr-com-card { background: #0f172a; border: 1px solid #334155; border-left-width: 4px; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; }
+  .gr-badge { display: inline-block; border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .gr-badge.local { background: #2a0e13; color: #f0a3ad; border: 1px solid #8e1b2c; }
+  .gr-badge.global { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+  .gr-path { background: #0f172a; border: 1px solid #8e1b2c; border-radius: 8px; padding: 12px 14px; text-align: center; font-family: monospace; font-size: 13px; color: #f2b0ba; margin: 12px 0; line-height: 1.9; }
+  .cmp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0; }
+  .cmp-table th { text-align: left; padding: 8px 10px; border-bottom: 1px solid #334155; color: #e0506a; font-size: 12px; }
+  .cmp-table td { padding: 8px 10px; border-bottom: 1px solid #1e293b; color: #94a3b8; vertical-align: top; line-height: 1.5; }
+  .cmp-table td:first-child { color: #e2e8f0; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="lang-toggle" id="langToggle">
+  <button data-lang="en">EN</button>
+  <button data-lang="es">ES</button>
+  <button data-lang="pt">PT</button>
+</div>
+
+<div class="dr-lockup" aria-label="DataRev">
+  <img src="/brand/datarev-logo-white.png" alt="DataRev" />
+</div>
+
+<div class="header">
+  <h1>RAG Simulator</h1>
+  <p id="subtitle"></p>
+</div>
+
+<div class="mode-tabs" id="modeTabs">
+  <button data-mode="rag" class="active" onclick="setMode('rag')">🔍 RAG</button>
+  <button data-mode="graphrag" onclick="setMode('graphrag')">🕸️ GraphRAG</button>
+  <button data-mode="advanced" onclick="setMode('advanced')">⚙️ Advanced RAG</button>
+  <button data-mode="harness" onclick="setMode('harness')">🔧 Harness</button>
+</div>
+
+<div class="pipeline" id="pipeline"></div>
+
+<div class="container" id="main"></div>
+
+<script>
+// ========== I18N ==========
+const I18N = {
+  es: {
+    subtitle: 'Retrieval-Augmented Generation &mdash; Aprende paso a paso',
+    stepLabels: ['Intro','Documentos','Limpieza','Chunking','Embedding','Vector DB','Query','Retrieve','Generate'],
+    prev: '← Anterior',
+    next: 'Siguiente →',
+    end: 'Fin',
+    search: 'Buscar 🔍',
+    restart: '🔄 Reiniciar simulación',
+    counter: (c,n) => `Paso ${c} de ${n}`,
+    stepOf: (n) => `Paso ${n} de 8`,
+    analogyLabel: '💡 Analogía',
+    words: 'palabras',
+    // Intro
+    introNum: 'Introducción',
+    introTitle: '¿Qué es RAG?',
+    introDesc: 'RAG (Retrieval-Augmented Generation) es una técnica que mejora las respuestas de un LLM dándole contexto relevante extraído de tus propios documentos.',
+    introAnalogy: 'Imagina que un LLM es un <strong>estudiante muy inteligente</strong> pero que solo sabe lo que estudió hasta cierta fecha. RAG es como darle un <strong>libro de apuntes</strong> justo antes del examen — no necesita memorizar todo, solo necesita <strong>buscar la página correcta</strong> y leer la respuesta.',
+    introCallout: '<strong>El problema que resuelve:</strong> Los LLMs no conocen tus datos privados (manuales, docs, bases de datos). RAG les da acceso a esa información <em>en el momento de responder</em>, sin necesidad de re-entrenar el modelo.',
+    introFlowTitle: 'El flujo completo que vamos a recorrer:',
+    flowCards: ['📄 Documentos','🧹 Limpieza','✂️ Chunking','🧠 Embedding','💾 Vector DB','❓ Query','🔍 Retrieve','🤖 Generate'],
+    // Docs
+    docsTitle: '📄 Documentos originales',
+    docsDesc: 'El primer paso es tener los documentos que contienen el conocimiento que queremos que el LLM pueda consultar.',
+    docsAnalogy: 'Estos son los <strong>libros de la biblioteca</strong>. Antes de poder buscar en ellos, necesitamos organizarlos.',
+    docsCallout: '<strong>En un sistema real</strong> estos podrían ser: PDFs, páginas web, documentación técnica, emails, bases de datos, etc. En esta simulación usamos 4 documentos de texto sobre tecnología.',
+    // Parse & Clean
+    parseTitle: '🧹 Parse & Clean (extracción y limpieza)',
+    parseDesc: 'Antes de trocear, cada documento se convierte en <strong>texto limpio</strong>: se extrae el contenido (PDF, HTML, escaneos…) y se quita el ruido. El chunking asume que ya tienes texto limpio.',
+    parseAnalogy: 'Es como <strong>pasar en limpio</strong> unos apuntes tomados a mano antes de estudiarlos: si la fotocopia salió borrosa o con manchas, primero la transcribes bien. Si no, estudiarías de basura.',
+    parseCallout: '<strong>En un sistema real este paso hace:</strong> extraer texto (PDF→texto, OCR para escaneos), parsing <em>consciente del layout</em> (para no romper tablas ni columnas), quitar <em>boilerplate</em> (menús, encabezados, pies, números de página), normalizar (encoding, espacios) y extraer metadata (fuente, fecha).<br><br>«Garbage in, garbage out»: un PDF mal extraído arruina la recuperación por buenos que sean los embeddings.',
+    parseBefore: 'Documento crudo (con ruido):',
+    parseAfter: 'Texto limpio, listo para trocear:',
+    parseArrow: 'parse &amp; clean',
+    parseStructTitle: '¿Y los datos estructurados?',
+    parseStruct: '<strong>No estructurados</strong> (PDF, web, emails) → <strong>siempre</strong> pasan por parse &amp; clean. <strong>Estructurados</strong> (SQL, tablas) → normalmente usan otro camino (<strong>text-to-SQL</strong> o serialización) en vez de chunking.',
+    // Chunk
+    chunkTitle: '✂️ Chunking (fragmentación)',
+    chunkDesc: 'Los documentos son demasiado largos para compararlos directamente. Los dividimos en fragmentos pequeños (chunks) con algo de superposición.',
+    chunkAnalogy: 'Es como cortar un libro en <strong>fichas de estudio</strong>. Cada ficha tiene un pedazo de información. Las fichas se superponen un poco para no perder contexto entre cortes.',
+    chunkCallout: '<strong>¿Por qué chunks?</strong> Los modelos de embedding tienen un límite de tokens. Además, chunks pequeños permiten <strong>recuperar solo la parte relevante</strong>, no todo el documento.<br><br><strong>Parámetros:</strong> <code>chunk_size=30 palabras</code> y <code>overlap=10 palabras</code>',
+    chunkOverlapTitle: 'Ejemplo visual de overlap:',
+    chunkOv1: 'Chunk 1: palabras 1-30',
+    chunkOv2: '← overlap: 10 palabras compartidas →',
+    chunkOv3: 'Chunk 2: palabras 21-50',
+    chunkPerDoc: (n) => `→ ${n} chunks`,
+    chunkTotal: (c,d) => `Total: <strong style="color:#e2e8f0;">${c} chunks</strong> generados de ${d} documentos`,
+    // Embed
+    embedTitle: '🧠 Embedding (vectorización)',
+    embedDesc: 'Cada chunk se convierte en un vector numérico que captura su significado semántico. Textos similares tendrán vectores similares.',
+    embedAnalogy: 'Imagina que cada ficha de estudio recibe unas <strong>coordenadas GPS</strong>. Fichas sobre temas parecidos quedan <strong>cerca en el mapa</strong>, fichas sobre temas diferentes quedan <strong>lejos</strong>.',
+    embedCallout: (dims) => `<strong>¿Cómo funciona?</strong> Un modelo de embedding (aquí simulamos con TF-IDF) analiza las palabras del texto y produce un vector de <code>${dims} dimensiones</code>. Cada dimensión representa la importancia de una palabra.<br><br><strong>En producción</strong> se usan modelos como <code>text-embedding-ada-002</code> (OpenAI) o <code>voyage-3</code> que producen vectores de 1536+ dimensiones capturando semántica profunda.`,
+    embedExampleTitle: 'Ejemplo: embedding del primer chunk',
+    embedTopDims: 'Top 10 dimensiones con mayor peso:',
+    embedFull: (a,dims) => `Vector completo: [${a}, ... ] (${dims} dims)`,
+    semBtn: '¿Similitud de texto o significado real? (el caso "Queen")',
+    semantics: {
+      eyebrow: '🤔 Semántica vs. sintaxis · el caso "Queen"',
+      title: '¿El coseno mide texto parecido o significado real?',
+      sub: 'El coseno mide el ángulo entre vectores — pero ese vector solo es semántico si el modelo de embedding capturó contexto, no solo palabras.',
+      pillars: [
+        { color: '#5b9bd5', name: '📐 Qué mide el coseno', q: 'El ángulo, no la magnitud', items: [
+          ['Ángulo = 0°', 'Coseno = 1: misma dirección conceptual (muy parecidos).'],
+          ['Ángulo = 90°', 'Coseno = 0: sin relación conceptual.']
+        ]},
+        { color: '#f59e0b', name: '👑 El caso "Queen"', q: '¿Banda de rock o monarca?', items: [
+          ['Palabra aislada', '«Queen» sola queda en un limbo: promedio entre música y realeza.'],
+          ['Con contexto (chunk)', '«Freddie Mercury fue el líder de Queen…» → el vector se va hacia "música", lejos de "reina Isabel II".']
+        ]},
+        { color: '#a970d0', name: '⚠️ El límite real', q: 'Depende del modelo de embedding', items: [
+          ['Embeddings modernos (ada-002, voyage-3)', 'Sí capturan semántica profunda: usan el contexto de la oración completa.'],
+          ['El TF-IDF de este simulador', 'Es más simple: cuenta frecuencia de palabras. Por eso a veces confunde texto parecido con significado igual — justo la limitación que un embedding real corrige.']
+        ]}
+      ],
+      tie: '<strong>Conclusión para la clase:</strong> el coseno siempre mide "distancia conceptual" en el espacio del vector — pero ese espacio solo refleja significado real si el modelo de embedding fue entrenado con contexto (chunks completos, no palabras sueltas). Ahí es donde el vector solo sabe <em>qué tan cerca está</em>, pero no <em>por qué</em> — y ese "por qué" es lo que aporta GraphRAG con relaciones explícitas.',
+      cite: 'Ejemplo clásico de ambigüedad léxica en NLP (word sense disambiguation).',
+      close: 'Cerrar'
+    },
+    // Store
+    storeTitle: '💾 Vector Database',
+    storeDesc: 'Todos los embeddings se almacenan en una base de datos vectorial que permite búsquedas por similitud ultra-rápidas.',
+    storeAnalogy: 'La vector DB es como un <strong>mapa donde cada ficha tiene su ubicación GPS</strong>. Cuando llega una pregunta, no leemos todas las fichas — simplemente buscamos <strong>las fichas más cercanas en el mapa</strong>.',
+    storeCallout: '<strong>Bases de datos vectoriales populares:</strong> Pinecone, Weaviate, ChromaDB, Qdrant, pgvector (PostgreSQL).<br>Aquí usamos una implementación en memoria con <strong>búsqueda por similitud coseno</strong>.',
+    storeHeaders: ['ID','Fuente','Texto (preview)','Embedding','Dims activas'],
+    storeDone: (n) => `✅ ${n} vectores almacenados y listos para búsqueda`,
+    // Query
+    queryTitle: '❓ Tu pregunta',
+    queryDesc: 'Ahora llega una pregunta del usuario. Esta pregunta también se convierte en un embedding para poder compararla con los chunks almacenados.',
+    queryAnalogy: 'Tu pregunta recibe sus propias <strong>coordenadas GPS</strong>. Ahora podemos buscar qué fichas están <strong>más cerca</strong> de tu pregunta en el mapa.',
+    queryCallout: '<strong>Importante:</strong> La misma función de embedding que usamos para los chunks se usa para la pregunta. Así ambos viven en el <strong>mismo espacio vectorial</strong> y la comparación tiene sentido.',
+    queryWrite: 'Escribe tu pregunta:',
+    queryPlaceholder: '¿Qué quieres saber?',
+    defaultQuery: '¿Cómo funciona JavaScript en el servidor?',
+    presets: [
+      { label: 'JS en servidor', q: '¿Cómo funciona JavaScript en el servidor?' },
+      { label: 'IA y lenguajes', q: '¿Qué lenguaje se usa para inteligencia artificial?' },
+      { label: 'Bases de datos', q: '¿Cómo se almacenan datos en bases de datos?' },
+      { label: 'React y DOM', q: '¿Qué es el DOM virtual en React?' }
+    ],
+    // Retrieve
+    retrieveTitle: '🔍 Retrieval (búsqueda por similitud)',
+    retrieveDesc: 'Comparamos el embedding de tu pregunta con todos los vectores almacenados usando <strong>similitud coseno</strong> y devolvemos los Top 3.',
+    retrieveAnalogy: 'Buscamos las 3 fichas de estudio cuyas <strong>coordenadas GPS están más cerca</strong> de las coordenadas de tu pregunta. Score de 1.0 = idéntico, 0.0 = sin relación.',
+    retrieveCallout: '<strong>Similitud coseno</strong> mide el ángulo entre dos vectores. No importa la magnitud, solo la <strong>dirección</strong>. Vectores apuntando en la misma dirección = contenido semánticamente similar.',
+    retrieveQEmb: (q) => `Embedding de tu pregunta: "${q}"`,
+    retrieveFlow1: 'Query embedding',
+    retrieveFlow2: (n) => `Comparar con ${n} vectores`,
+    retrieveFlow3: 'Top 3',
+    retrieveResults: 'Resultados ordenados por similitud:',
+    similarity: 'similitud',
+    // Generate
+    genTitle: '🤖 Generation (respuesta del LLM)',
+    genDesc: 'Finalmente, enviamos al LLM tu pregunta original <strong>junto con los chunks recuperados</strong> como contexto. El LLM genera una respuesta basada en esa información.',
+    genAnalogy: 'Le damos al estudiante inteligente tu pregunta + las 3 fichas de estudio más relevantes. Ahora puede responder <strong>con información específica</strong> en vez de inventar o alucinar.',
+    genCallout: (q) => `<strong>El prompt al LLM se ve así:</strong><br><br><code>System: Responde basándote SOLO en el contexto proporcionado.</code><br><code>Context: [chunk 1] [chunk 2] [chunk 3]</code><br><code>User: ${q}</code>`,
+    genContextLabel: 'Contexto enviado al LLM:',
+    genContextItem: (i,score,src) => `Contexto ${i} (score: ${score}%) — ${src}`,
+    genFlow1: 'Pregunta + Contexto',
+    genFlow2: 'Respuesta',
+    genThinking: '🤖 LLM generando respuesta con contexto RAG...',
+    genSources: '📎 Fuentes utilizadas:',
+    genAdvantages: '<strong style="color:#34d399;">✅ Ventajas de RAG:</strong><br>• El LLM responde con datos actualizados de tus documentos<br>• Puedes verificar las fuentes (citaciones)<br>• No necesitas re-entrenar el modelo<br>• Reduces las alucinaciones significativamente'
+  },
+  en: {
+    subtitle: 'Retrieval-Augmented Generation &mdash; Learn step by step',
+    stepLabels: ['Intro','Documents','Parse & Clean','Chunking','Embedding','Vector DB','Query','Retrieve','Generate'],
+    prev: '← Previous',
+    next: 'Next →',
+    end: 'End',
+    search: 'Search 🔍',
+    restart: '🔄 Restart simulation',
+    counter: (c,n) => `Step ${c} of ${n}`,
+    stepOf: (n) => `Step ${n} of 8`,
+    analogyLabel: '💡 Analogy',
+    words: 'words',
+    // Intro
+    introNum: 'Introduction',
+    introTitle: 'What is RAG?',
+    introDesc: "RAG (Retrieval-Augmented Generation) is a technique that improves an LLM's answers by giving it relevant context pulled from your own documents.",
+    introAnalogy: "Imagine an LLM is a <strong>very smart student</strong> who only knows what they studied up to a certain date. RAG is like handing them a <strong>notebook</strong> right before the exam — they don't need to memorize everything, they just need to <strong>find the right page</strong> and read the answer.",
+    introCallout: "<strong>The problem it solves:</strong> LLMs don't know your private data (manuals, docs, databases). RAG gives them access to that information <em>at answer time</em>, with no need to re-train the model.",
+    introFlowTitle: "The full flow we'll walk through:",
+    flowCards: ['📄 Documents','🧹 Parse & Clean','✂️ Chunking','🧠 Embedding','💾 Vector DB','❓ Query','🔍 Retrieve','🤖 Generate'],
+    // Docs
+    docsTitle: '📄 Source documents',
+    docsDesc: 'The first step is having the documents that contain the knowledge we want the LLM to be able to consult.',
+    docsAnalogy: 'These are the <strong>library books</strong>. Before we can search them, we need to organize them.',
+    docsCallout: '<strong>In a real system</strong> these could be: PDFs, web pages, technical documentation, emails, databases, etc. In this simulation we use 4 text documents about technology.',
+    // Parse & Clean
+    parseTitle: '🧹 Parse & Clean (extract & clean)',
+    parseDesc: 'Before chunking, each document is turned into <strong>clean text</strong>: the content is extracted (PDF, HTML, scans…) and the noise removed. Chunking assumes you already have clean text.',
+    parseAnalogy: 'It is like <strong>rewriting</strong> messy handwritten notes before studying them: if the photocopy came out blurry or stained, you transcribe it properly first. Otherwise you would study from garbage.',
+    parseCallout: '<strong>In a real system this step does:</strong> extract text (PDF→text, OCR for scans), <em>layout-aware</em> parsing (so tables & columns are not scrambled), strip <em>boilerplate</em> (menus, headers, footers, page numbers), normalize (encoding, whitespace) and extract metadata (source, date).<br><br>"Garbage in, garbage out": a badly-extracted PDF wrecks retrieval no matter how good the embeddings are.',
+    parseBefore: 'Raw document (with noise):',
+    parseAfter: 'Clean text, ready to chunk:',
+    parseArrow: 'parse &amp; clean',
+    parseStructTitle: 'What about structured data?',
+    parseStruct: '<strong>Unstructured</strong> (PDF, web, emails) → they <strong>always</strong> go through parse &amp; clean. <strong>Structured</strong> (SQL, tables) → usually take another path (<strong>text-to-SQL</strong> or serialization) instead of chunking.',
+    // Chunk
+    chunkTitle: '✂️ Chunking',
+    chunkDesc: 'Documents are too long to compare directly. We split them into small fragments (chunks) with some overlap.',
+    chunkAnalogy: "It's like cutting a book into <strong>study cards</strong>. Each card holds a piece of information. The cards overlap a little so we don't lose context between cuts.",
+    chunkCallout: '<strong>Why chunks?</strong> Embedding models have a token limit. Also, small chunks let you <strong>retrieve only the relevant part</strong>, not the whole document.<br><br><strong>Parameters:</strong> <code>chunk_size=30 words</code> and <code>overlap=10 words</code>',
+    chunkOverlapTitle: 'Visual overlap example:',
+    chunkOv1: 'Chunk 1: words 1-30',
+    chunkOv2: '← overlap: 10 shared words →',
+    chunkOv3: 'Chunk 2: words 21-50',
+    chunkPerDoc: (n) => `→ ${n} chunks`,
+    chunkTotal: (c,d) => `Total: <strong style="color:#e2e8f0;">${c} chunks</strong> generated from ${d} documents`,
+    // Embed
+    embedTitle: '🧠 Embedding (vectorization)',
+    embedDesc: 'Each chunk is turned into a numeric vector that captures its semantic meaning. Similar texts will have similar vectors.',
+    embedAnalogy: 'Imagine each study card gets <strong>GPS coordinates</strong>. Cards on similar topics end up <strong>close on the map</strong>, cards on different topics end up <strong>far apart</strong>.',
+    embedCallout: (dims) => `<strong>How does it work?</strong> An embedding model (here we simulate with TF-IDF) analyzes the words in the text and produces a vector of <code>${dims} dimensions</code>. Each dimension represents the importance of a word.<br><br><strong>In production</strong> models like <code>text-embedding-ada-002</code> (OpenAI) or <code>voyage-3</code> are used, producing vectors of 1536+ dimensions that capture deep semantics.`,
+    embedExampleTitle: 'Example: embedding of the first chunk',
+    embedTopDims: 'Top 10 highest-weight dimensions:',
+    embedFull: (a,dims) => `Full vector: [${a}, ... ] (${dims} dims)`,
+    semBtn: 'Text similarity or real meaning? (the "Queen" case)',
+    semantics: {
+      eyebrow: '🤔 Semantics vs. syntax · the "Queen" case',
+      title: 'Does cosine measure similar text or real meaning?',
+      sub: 'Cosine measures the angle between vectors — but that vector is only semantic if the embedding model captured context, not just words.',
+      pillars: [
+        { color: '#5b9bd5', name: '📐 What cosine measures', q: 'The angle, not the magnitude', items: [
+          ['Angle = 0°', 'Cosine = 1: same conceptual direction (very similar).'],
+          ['Angle = 90°', 'Cosine = 0: no conceptual relation.']
+        ]},
+        { color: '#f59e0b', name: '👑 The "Queen" case', q: 'Rock band or monarch?', items: [
+          ['Isolated word', '"Queen" alone sits in limbo: an average between music and royalty.'],
+          ['With context (a chunk)', '"Freddie Mercury was the leader of Queen…" → the vector shifts toward "music", far from "Queen Elizabeth II".']
+        ]},
+        { color: '#a970d0', name: '⚠️ The real limit', q: 'It depends on the embedding model', items: [
+          ['Modern embeddings (ada-002, voyage-3)', 'Do capture deep semantics: they use the context of the full sentence.'],
+          ['This simulator\'s TF-IDF', 'Is simpler: it counts word frequency. That\'s why it sometimes confuses similar text with the same meaning — exactly the limitation a real embedding fixes.']
+        ]}
+      ],
+      tie: '<strong>Takeaway for class:</strong> cosine always measures "conceptual distance" in vector space — but that space only reflects real meaning if the embedding model was trained with context (full chunks, not loose words). That is where the vector only knows <em>how close</em> something is, but not <em>why</em> — and that "why" is exactly what GraphRAG contributes with explicit relationships.',
+      cite: 'Classic example of lexical ambiguity in NLP (word sense disambiguation).',
+      close: 'Close'
+    },
+    // Store
+    storeTitle: '💾 Vector Database',
+    storeDesc: 'All embeddings are stored in a vector database that enables ultra-fast similarity search.',
+    storeAnalogy: "The vector DB is like a <strong>map where each card has its GPS location</strong>. When a question arrives, we don't read every card — we just look for <strong>the closest cards on the map</strong>.",
+    storeCallout: '<strong>Popular vector databases:</strong> Pinecone, Weaviate, ChromaDB, Qdrant, pgvector (PostgreSQL).<br>Here we use an in-memory implementation with <strong>cosine similarity search</strong>.',
+    storeHeaders: ['ID','Source','Text (preview)','Embedding','Active dims'],
+    storeDone: (n) => `✅ ${n} vectors stored and ready for search`,
+    // Query
+    queryTitle: '❓ Your question',
+    queryDesc: 'Now a user question arrives. This question is also turned into an embedding so it can be compared with the stored chunks.',
+    queryAnalogy: 'Your question gets its own <strong>GPS coordinates</strong>. Now we can look for which cards are <strong>closest</strong> to your question on the map.',
+    queryCallout: '<strong>Important:</strong> The same embedding function used for the chunks is used for the question. That way both live in the <strong>same vector space</strong> and the comparison makes sense.',
+    queryWrite: 'Type your question:',
+    queryPlaceholder: 'What do you want to know?',
+    defaultQuery: 'How does JavaScript work on the server?',
+    presets: [
+      { label: 'JS on the server', q: 'How does JavaScript work on the server?' },
+      { label: 'AI & languages', q: 'Which language is used for artificial intelligence?' },
+      { label: 'Databases', q: 'How is data stored in databases?' },
+      { label: 'React & DOM', q: 'What is the virtual DOM in React?' }
+    ],
+    // Retrieve
+    retrieveTitle: '🔍 Retrieval (similarity search)',
+    retrieveDesc: "We compare your question's embedding against all stored vectors using <strong>cosine similarity</strong> and return the Top 3.",
+    retrieveAnalogy: "We look for the 3 study cards whose <strong>GPS coordinates are closest</strong> to your question's coordinates. Score of 1.0 = identical, 0.0 = unrelated.",
+    retrieveCallout: "<strong>Cosine similarity</strong> measures the angle between two vectors. Magnitude doesn't matter, only <strong>direction</strong>. Vectors pointing the same way = semantically similar content.",
+    retrieveQEmb: (q) => `Your question's embedding: "${q}"`,
+    retrieveFlow1: 'Query embedding',
+    retrieveFlow2: (n) => `Compare with ${n} vectors`,
+    retrieveFlow3: 'Top 3',
+    retrieveResults: 'Results ranked by similarity:',
+    similarity: 'similarity',
+    // Generate
+    genTitle: '🤖 Generation (LLM response)',
+    genDesc: 'Finally, we send the LLM your original question <strong>along with the retrieved chunks</strong> as context. The LLM generates an answer based on that information.',
+    genAnalogy: 'We give the smart student your question + the 3 most relevant study cards. Now they can answer <strong>with specific information</strong> instead of making things up or hallucinating.',
+    genCallout: (q) => `<strong>The prompt to the LLM looks like this:</strong><br><br><code>System: Answer based ONLY on the provided context.</code><br><code>Context: [chunk 1] [chunk 2] [chunk 3]</code><br><code>User: ${q}</code>`,
+    genContextLabel: 'Context sent to the LLM:',
+    genContextItem: (i,score,src) => `Context ${i} (score: ${score}%) — ${src}`,
+    genFlow1: 'Question + Context',
+    genFlow2: 'Answer',
+    genThinking: '🤖 LLM generating an answer with RAG context...',
+    genSources: '📎 Sources used:',
+    genAdvantages: '<strong style="color:#34d399;">✅ Advantages of RAG:</strong><br>• The LLM answers with up-to-date data from your documents<br>• You can verify the sources (citations)<br>• No need to re-train the model<br>• Significantly reduces hallucinations'
+  },
+  pt: {
+    subtitle: 'Retrieval-Augmented Generation &mdash; Aprenda passo a passo',
+    stepLabels: ['Intro','Documentos','Parse & Clean','Chunking','Embedding','Vector DB','Query','Retrieve','Generate'],
+    prev: '← Anterior',
+    next: 'Próximo →',
+    end: 'Fim',
+    search: 'Buscar 🔍',
+    restart: '🔄 Reiniciar simulação',
+    counter: (c,n) => `Passo ${c} de ${n}`,
+    stepOf: (n) => `Passo ${n} de 8`,
+    analogyLabel: '💡 Analogia',
+    words: 'palavras',
+    // Intro
+    introNum: 'Introdução',
+    introTitle: 'O que é RAG?',
+    introDesc: 'RAG (Retrieval-Augmented Generation) é uma técnica que melhora as respostas de um LLM dando a ele contexto relevante extraído dos seus próprios documentos.',
+    introAnalogy: 'Imagine que um LLM é um <strong>estudante muito inteligente</strong> que só sabe o que estudou até certa data. RAG é como dar a ele um <strong>caderno de anotações</strong> pouco antes da prova — não precisa memorizar tudo, só precisa <strong>achar a página certa</strong> e ler a resposta.',
+    introCallout: '<strong>O problema que resolve:</strong> os LLMs não conhecem seus dados privados (manuais, docs, bancos de dados). RAG dá acesso a essa informação <em>na hora de responder</em>, sem precisar re-treinar o modelo.',
+    introFlowTitle: 'O fluxo completo que vamos percorrer:',
+    flowCards: ['📄 Documentos','🧹 Parse & Clean','✂️ Chunking','🧠 Embedding','💾 Vector DB','❓ Query','🔍 Retrieve','🤖 Generate'],
+    // Docs
+    docsTitle: '📄 Documentos originais',
+    docsDesc: 'O primeiro passo é ter os documentos que contêm o conhecimento que queremos que o LLM possa consultar.',
+    docsAnalogy: 'Estes são os <strong>livros da biblioteca</strong>. Antes de poder buscar neles, precisamos organizá-los.',
+    docsCallout: '<strong>Em um sistema real</strong> estes poderiam ser: PDFs, páginas web, documentação técnica, emails, bancos de dados, etc. Nesta simulação usamos 4 documentos de texto sobre tecnologia.',
+    // Parse & Clean
+    parseTitle: '🧹 Parse & Clean (extração e limpeza)',
+    parseDesc: 'Antes de trocear, cada documento é convertido em <strong>texto limpo</strong>: extrai-se o conteúdo (PDF, HTML, digitalizações…) e remove-se o ruído. O chunking assume que você já tem texto limpo.',
+    parseAnalogy: 'É como <strong>passar a limpo</strong> anotações feitas à mão antes de estudar: se a fotocópia saiu borrada ou manchada, primeiro você transcreve direito. Senão, estudaria do lixo.',
+    parseCallout: '<strong>Em um sistema real este passo faz:</strong> extrair texto (PDF→texto, OCR para digitalizações), parsing <em>consciente do layout</em> (para não quebrar tabelas nem colunas), remover <em>boilerplate</em> (menus, cabeçalhos, rodapés, números de página), normalizar (encoding, espaços) e extrair metadata (fonte, data).<br><br>«Garbage in, garbage out»: um PDF mal extraído arruína a recuperação por melhores que sejam os embeddings.',
+    parseBefore: 'Documento cru (com ruído):',
+    parseAfter: 'Texto limpo, pronto para trocear:',
+    parseArrow: 'parse &amp; clean',
+    parseStructTitle: 'E os dados estruturados?',
+    parseStruct: '<strong>Não estruturados</strong> (PDF, web, emails) → <strong>sempre</strong> passam por parse &amp; clean. <strong>Estruturados</strong> (SQL, tabelas) → normalmente usam outro caminho (<strong>text-to-SQL</strong> ou serialização) em vez de chunking.',
+    // Chunk
+    chunkTitle: '✂️ Chunking (fragmentação)',
+    chunkDesc: 'Os documentos são longos demais para comparar diretamente. Nós os dividimos em fragmentos pequenos (chunks) com alguma sobreposição.',
+    chunkAnalogy: 'É como cortar um livro em <strong>fichas de estudo</strong>. Cada ficha tem um pedaço de informação. As fichas se sobrepõem um pouco para não perder contexto entre os cortes.',
+    chunkCallout: '<strong>Por que chunks?</strong> Os modelos de embedding têm um limite de tokens. Além disso, chunks pequenos permitem <strong>recuperar só a parte relevante</strong>, não o documento inteiro.<br><br><strong>Parâmetros:</strong> <code>chunk_size=30 palavras</code> e <code>overlap=10 palavras</code>',
+    chunkOverlapTitle: 'Exemplo visual de overlap:',
+    chunkOv1: 'Chunk 1: palavras 1-30',
+    chunkOv2: '← overlap: 10 palavras compartilhadas →',
+    chunkOv3: 'Chunk 2: palavras 21-50',
+    chunkPerDoc: (n) => `→ ${n} chunks`,
+    chunkTotal: (c,d) => `Total: <strong style="color:#e2e8f0;">${c} chunks</strong> gerados de ${d} documentos`,
+    // Embed
+    embedTitle: '🧠 Embedding (vetorização)',
+    embedDesc: 'Cada chunk é convertido em um vetor numérico que captura seu significado semântico. Textos parecidos terão vetores parecidos.',
+    embedAnalogy: 'Imagine que cada ficha de estudo recebe <strong>coordenadas GPS</strong>. Fichas sobre temas parecidos ficam <strong>perto no mapa</strong>, fichas sobre temas diferentes ficam <strong>longe</strong>.',
+    embedCallout: (dims) => `<strong>Como funciona?</strong> Um modelo de embedding (aqui simulamos com TF-IDF) analisa as palavras do texto e produz um vetor de <code>${dims} dimensões</code>. Cada dimensão representa a importância de uma palavra.<br><br><strong>Em produção</strong> usam-se modelos como <code>text-embedding-ada-002</code> (OpenAI) ou <code>voyage-3</code> que produzem vetores de 1536+ dimensões capturando semântica profunda.`,
+    embedExampleTitle: 'Exemplo: embedding do primeiro chunk',
+    embedTopDims: 'Top 10 dimensões com maior peso:',
+    embedFull: (a,dims) => `Vetor completo: [${a}, ... ] (${dims} dims)`,
+    semBtn: 'Similaridade de texto ou significado real? (o caso "Queen")',
+    semantics: {
+      eyebrow: '🤔 Semântica vs. sintaxe · o caso "Queen"',
+      title: 'O cosseno mede texto parecido ou significado real?',
+      sub: 'O cosseno mede o ângulo entre vetores — mas esse vetor só é semântico se o modelo de embedding capturou contexto, não só palavras.',
+      pillars: [
+        { color: '#5b9bd5', name: '📐 O que o cosseno mede', q: 'O ângulo, não a magnitude', items: [
+          ['Ângulo = 0°', 'Cosseno = 1: mesma direção conceitual (muito parecidos).'],
+          ['Ângulo = 90°', 'Cosseno = 0: sem relação conceitual.']
+        ]},
+        { color: '#f59e0b', name: '👑 O caso "Queen"', q: 'Banda de rock ou monarca?', items: [
+          ['Palavra isolada', '«Queen» sozinha fica em um limbo: média entre música e realeza.'],
+          ['Com contexto (chunk)', '«Freddie Mercury foi o líder do Queen…» → o vetor vai para "música", longe de "rainha Elizabeth II".']
+        ]},
+        { color: '#a970d0', name: '⚠️ O limite real', q: 'Depende do modelo de embedding', items: [
+          ['Embeddings modernos (ada-002, voyage-3)', 'Capturam semântica profunda: usam o contexto da frase inteira.'],
+          ['O TF-IDF deste simulador', 'É mais simples: conta frequência de palavras. Por isso às vezes confunde texto parecido com o mesmo significado — justamente a limitação que um embedding real corrige.']
+        ]}
+      ],
+      tie: '<strong>Conclusão para a aula:</strong> o cosseno sempre mede "distância conceitual" no espaço do vetor — mas esse espaço só reflete significado real se o modelo de embedding foi treinado com contexto (chunks completos, não palavras soltas). É aí que o vetor só sabe <em>quão perto</em> algo está, mas não <em>por quê</em> — e esse "por quê" é justamente o que o GraphRAG traz com relações explícitas.',
+      cite: 'Exemplo clássico de ambiguidade lexical em NLP (word sense disambiguation).',
+      close: 'Fechar'
+    },
+    // Store
+    storeTitle: '💾 Vector Database',
+    storeDesc: 'Todos os embeddings são armazenados em um banco de dados vetorial que permite buscas por similaridade ultra-rápidas.',
+    storeAnalogy: 'O vector DB é como um <strong>mapa onde cada ficha tem sua localização GPS</strong>. Quando chega uma pergunta, não lemos todas as fichas — só buscamos <strong>as fichas mais próximas no mapa</strong>.',
+    storeCallout: '<strong>Bancos de dados vetoriais populares:</strong> Pinecone, Weaviate, ChromaDB, Qdrant, pgvector (PostgreSQL).<br>Aqui usamos uma implementação em memória com <strong>busca por similaridade de cosseno</strong>.',
+    storeHeaders: ['ID','Fonte','Texto (prévia)','Embedding','Dims ativas'],
+    storeDone: (n) => `✅ ${n} vetores armazenados e prontos para busca`,
+    // Query
+    queryTitle: '❓ Sua pergunta',
+    queryDesc: 'Agora chega uma pergunta do usuário. Essa pergunta também é convertida em um embedding para poder ser comparada com os chunks armazenados.',
+    queryAnalogy: 'Sua pergunta recebe suas próprias <strong>coordenadas GPS</strong>. Agora podemos buscar quais fichas estão <strong>mais perto</strong> da sua pergunta no mapa.',
+    queryCallout: '<strong>Importante:</strong> A mesma função de embedding usada para os chunks é usada para a pergunta. Assim ambos vivem no <strong>mesmo espaço vetorial</strong> e a comparação faz sentido.',
+    queryWrite: 'Escreva sua pergunta:',
+    queryPlaceholder: 'O que você quer saber?',
+    defaultQuery: 'Como o JavaScript funciona no servidor?',
+    presets: [
+      { label: 'JS no servidor', q: 'Como o JavaScript funciona no servidor?' },
+      { label: 'IA & linguagens', q: 'Qual linguagem é usada para inteligência artificial?' },
+      { label: 'Bancos de dados', q: 'Como os dados são armazenados em bancos de dados?' },
+      { label: 'React & DOM', q: 'O que é o DOM virtual no React?' }
+    ],
+    // Retrieve
+    retrieveTitle: '🔍 Retrieval (busca por similaridade)',
+    retrieveDesc: 'Comparamos o embedding da sua pergunta com todos os vetores armazenados usando <strong>similaridade de cosseno</strong> e retornamos o Top 3.',
+    retrieveAnalogy: 'Buscamos as 3 fichas de estudo cujas <strong>coordenadas GPS estão mais perto</strong> das coordenadas da sua pergunta. Score de 1.0 = idêntico, 0.0 = sem relação.',
+    retrieveCallout: '<strong>Similaridade de cosseno</strong> mede o ângulo entre dois vetores. A magnitude não importa, só a <strong>direção</strong>. Vetores apontando na mesma direção = conteúdo semanticamente parecido.',
+    retrieveQEmb: (q) => `Embedding da sua pergunta: "${q}"`,
+    retrieveFlow1: 'Query embedding',
+    retrieveFlow2: (n) => `Comparar com ${n} vetores`,
+    retrieveFlow3: 'Top 3',
+    retrieveResults: 'Resultados ordenados por similaridade:',
+    similarity: 'similaridade',
+    // Generate
+    genTitle: '🤖 Generation (resposta do LLM)',
+    genDesc: 'Finalmente, enviamos ao LLM sua pergunta original <strong>junto com os chunks recuperados</strong> como contexto. O LLM gera uma resposta baseada nessa informação.',
+    genAnalogy: 'Damos ao estudante inteligente sua pergunta + as 3 fichas de estudo mais relevantes. Agora ele pode responder <strong>com informação específica</strong> em vez de inventar ou alucinar.',
+    genCallout: (q) => `<strong>O prompt ao LLM fica assim:</strong><br><br><code>System: Responda baseando-se SOMENTE no contexto fornecido.</code><br><code>Context: [chunk 1] [chunk 2] [chunk 3]</code><br><code>User: ${q}</code>`,
+    genContextLabel: 'Contexto enviado ao LLM:',
+    genContextItem: (i,score,src) => `Contexto ${i} (score: ${score}%) — ${src}`,
+    genFlow1: 'Pergunta + Contexto',
+    genFlow2: 'Resposta',
+    genThinking: '🤖 LLM gerando resposta com contexto RAG...',
+    genSources: '📎 Fontes utilizadas:',
+    genAdvantages: '<strong style="color:#34d399;">✅ Vantagens do RAG:</strong><br>• O LLM responde com dados atualizados dos seus documentos<br>• Você pode verificar as fontes (citações)<br>• Não precisa re-treinar o modelo<br>• Reduz significativamente as alucinações'
+  }
+};
+
+// ========== DOCUMENTS PER LANGUAGE ==========
+const DOCS = {
+  es: [
+    { source:'manual_nodejs.txt', text:'Node.js es un entorno de ejecución para JavaScript construido con el motor V8 de Chrome. Permite ejecutar JavaScript en el servidor. Node.js usa un modelo de operaciones de entrada y salida sin bloqueo y orientado a eventos que lo hace liviano y eficiente.' },
+    { source:'guia_python.txt', text:'Python es un lenguaje de programación interpretado de alto nivel. Es conocido por su sintaxis clara y legible. Python soporta múltiples paradigmas de programación incluyendo programación orientada a objetos, funcional e imperativa. Es muy usado en ciencia de datos e inteligencia artificial.' },
+    { source:'intro_react.txt', text:'React es una biblioteca de JavaScript para construir interfaces de usuario. Fue desarrollada por Facebook. React usa un DOM virtual para optimizar las actualizaciones del navegador. Los componentes son la unidad básica de React y pueden manejar su propio estado.' },
+    { source:'bases_datos.txt', text:'Las bases de datos relacionales usan tablas para almacenar datos. SQL es el lenguaje estándar para consultar bases de datos relacionales. PostgreSQL y MySQL son ejemplos populares. Las bases de datos NoSQL como MongoDB almacenan datos en documentos JSON flexibles.' }
+  ],
+  en: [
+    { source:'nodejs_manual.txt', text:"Node.js is a JavaScript runtime environment built on Chrome's V8 engine. It lets you run JavaScript on the server. Node.js uses a non-blocking, event-driven input and output model that makes it lightweight and efficient." },
+    { source:'python_guide.txt', text:'Python is a high-level interpreted programming language. It is known for its clear and readable syntax. Python supports multiple programming paradigms including object-oriented, functional and imperative programming. It is widely used in data science and artificial intelligence.' },
+    { source:'react_intro.txt', text:'React is a JavaScript library for building user interfaces. It was developed by Facebook. React uses a virtual DOM to optimize browser updates. Components are the basic unit of React and can manage their own state.' },
+    { source:'databases.txt', text:'Relational databases use tables to store data. SQL is the standard language for querying relational databases. PostgreSQL and MySQL are popular examples. NoSQL databases like MongoDB store data in flexible JSON documents.' }
+  ],
+  pt: [
+    { source:'manual_nodejs.txt', text:'Node.js é um ambiente de execução para JavaScript construído com o motor V8 do Chrome. Permite executar JavaScript no servidor. Node.js usa um modelo de operações de entrada e saída sem bloqueio e orientado a eventos que o torna leve e eficiente.' },
+    { source:'guia_python.txt', text:'Python é uma linguagem de programação interpretada de alto nível. É conhecida por sua sintaxe clara e legível. Python suporta múltiplos paradigmas de programação incluindo programação orientada a objetos, funcional e imperativa. É muito usada em ciência de dados e inteligência artificial.' },
+    { source:'intro_react.txt', text:'React é uma biblioteca de JavaScript para construir interfaces de usuário. Foi desenvolvida pelo Facebook. React usa um DOM virtual para otimizar as atualizações do navegador. Os componentes são a unidade básica do React e podem gerenciar seu próprio estado.' },
+    { source:'bancos_dados.txt', text:'Os bancos de dados relacionais usam tabelas para armazenar dados. SQL é a linguagem padrão para consultar bancos de dados relacionais. PostgreSQL e MySQL são exemplos populares. Os bancos de dados NoSQL como MongoDB armazenam dados em documentos JSON flexíveis.' }
+  ]
+};
+
+// ========== RAG ENGINE ==========
+class VectorDB {
+  constructor() { this.vectors = []; }
+  insert(id, embedding, metadata) { this.vectors.push({ id, embedding, metadata }); }
+  cosineSimilarity(a, b) {
+    let dot = 0, magA = 0, magB = 0;
+    for (let i = 0; i < a.length; i++) { dot += a[i]*b[i]; magA += a[i]*a[i]; magB += b[i]*b[i]; }
+    const d = Math.sqrt(magA) * Math.sqrt(magB);
+    return d === 0 ? 0 : dot / d;
+  }
+  search(qe, topK = 3) {
+    return this.vectors.map(v => ({ ...v, score: this.cosineSimilarity(qe, v.embedding) }))
+      .sort((a,b) => b.score - a.score).slice(0, topK);
+  }
+}
+class EmbeddingModel {
+  constructor() { this.vocabulary = []; this.idf = {}; }
+  buildVocabulary(docs) {
+    const all = new Set(), dc = docs.length, wdf = {};
+    for (const d of docs) { const uw = new Set(this.tok(d)); for (const w of uw) { all.add(w); wdf[w]=(wdf[w]||0)+1; } }
+    this.vocabulary = [...all].sort();
+    for (const w of this.vocabulary) this.idf[w] = Math.log(dc / (wdf[w]||1));
+  }
+  tok(t) { return t.toLowerCase().replace(/[^a-záéíóúñüãõçâêôàü0-9\s]/g,'').split(/\s+/).filter(w=>w.length>2); }
+  embed(text) {
+    const words = this.tok(text), tf = {};
+    for (const w of words) tf[w]=(tf[w]||0)+1;
+    for (const w of Object.keys(tf)) tf[w]/=words.length;
+    const v = this.vocabulary.map(w => (tf[w]||0)*(this.idf[w]||0));
+    const mag = Math.sqrt(v.reduce((s,x)=>s+x*x,0));
+    return mag > 0 ? v.map(x=>x/mag) : v;
+  }
+  getTopDims(embedding, n=8) {
+    return this.vocabulary.map((w,i) => ({word:w, val:embedding[i]}))
+      .filter(x => x.val > 0).sort((a,b) => b.val - a.val).slice(0, n);
+  }
+}
+function chunkText(text, sz=30, ov=10) {
+  const w = text.split(/\s+/), ch = [];
+  for (let i=0; i<w.length; i+=sz-ov) { const c=w.slice(i,i+sz).join(' '); if(c.trim()) ch.push(c); }
+  return ch;
+}
+
+// ========== STATE ==========
+let lang = 'en';
+let documents = [];
+const emb = new EmbeddingModel();
+const vdb = new VectorDB();
+let allChunks = [];
+let currentStep = 0;
+let userQuery = '';
+
+function T() { return I18N[lang]; }
+
+// ========== MODE TABS (RAG / GraphRAG) ==========
+let appMode = 'rag';
+function setMode(m) {
+  if (m === appMode) return;
+  appMode = m;
+  document.querySelectorAll('#modeTabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === appMode));
+  renderApp();
+}
+function renderApp() {
+  if (appMode === 'graphrag') { grRenderStep(); }
+  else if (appMode === 'advanced') { arRenderStep(); }
+  else if (appMode === 'harness') { hrRenderStep(); }
+  else { renderChrome(); renderStep(); }
+}
+
+// Pre-compute
+function initEngine() {
+  documents = DOCS[lang];
+  allChunks = [];
+  for (const d of documents) {
+    for (const c of chunkText(d.text)) allChunks.push({text:c, source:d.source});
+  }
+  emb.buildVocabulary(allChunks.map(c=>c.text));
+  vdb.vectors = [];
+  for (let i=0; i<allChunks.length; i++) {
+    vdb.insert('chunk_'+i, emb.embed(allChunks[i].text), allChunks[i]);
+  }
+}
+
+// ========== STEPS ==========
+const steps = [
+  { id:'intro',    icon:'📖' },
+  { id:'docs',     icon:'📄' },
+  { id:'parse',    icon:'🧹' },
+  { id:'chunk',    icon:'✂️' },
+  { id:'embed',    icon:'🧠' },
+  { id:'store',    icon:'💾' },
+  { id:'query',    icon:'❓' },
+  { id:'retrieve', icon:'🔍' },
+  { id:'generate', icon:'🤖' },
+];
+
+// ========== LANGUAGE TOGGLE ==========
+function setLang(newLang) {
+  if (newLang === lang) return;
+  lang = newLang;
+  document.documentElement.lang = lang;
+  userQuery = '';
+  if (currentStep > 6) currentStep = 6; // retrieve/generate depend on a stored query
+  initEngine();
+  if (typeof grOnLangChange === 'function') grOnLangChange();
+  if (typeof arOnLangChange === 'function') arOnLangChange();
+  if (typeof hrOnLangChange === 'function') hrOnLangChange();
+  renderChrome();
+  renderApp();
+}
+
+function renderChrome() {
+  document.getElementById('subtitle').innerHTML = T().subtitle;
+  document.querySelectorAll('#langToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+}
+
+// ========== RENDER PIPELINE ==========
+function renderPipeline() {
+  const el = document.getElementById('pipeline');
+  const labels = T().stepLabels;
+  el.innerHTML = steps.map((s,i) => {
+    const cls = i < currentStep ? 'done' : i === currentStep ? 'active' : 'locked';
+    return (i > 0 ? '<span class="pip-arrow">→</span>' : '') +
+      `<div class="pip ${cls}" onclick="${i<=currentStep?'goStep('+i+')':''}">${s.icon} ${labels[i]}</div>`;
+  }).join('');
+}
+
+// ========== RENDER STEP CONTENT ==========
+function renderStep() {
+  renderPipeline();
+  const m = document.getElementById('main');
+  const renderers = [renderIntro, renderDocs, renderParse, renderChunk, renderEmbed, renderStore, renderQuery, renderRetrieve, renderGenerate];
+  m.innerHTML = '';
+  renderers[currentStep]();
+  m.innerHTML += renderControls();
+  attachControlEvents();
+}
+
+function renderControls() {
+  const L = T();
+  const isFirst = currentStep === 0;
+  const isLast = currentStep === steps.length - 1;
+  const isQuery = currentStep === 6;
+  return `
+    <div class="controls">
+      <button class="btn btn-ghost" id="prevBtn" ${isFirst?'disabled':''}>${L.prev}</button>
+      <span class="step-counter">${L.counter(currentStep+1, steps.length)}</span>
+      ${isQuery
+        ? `<button class="btn btn-primary" id="nextBtn" onclick="submitQuery()">${L.search}</button>`
+        : `<button class="btn btn-primary" id="nextBtn" ${isLast?'disabled':''}>${isLast?L.end:L.next}</button>`
+      }
+    </div>
+    ${currentStep === steps.length-1 ? `
+      <div style="text-align:center; margin-top:16px;">
+        <button class="btn btn-reset" onclick="restart()">${L.restart}</button>
+      </div>
+    `:''}
+  `;
+}
+
+function attachControlEvents() {
+  const prev = document.getElementById('prevBtn');
+  const next = document.getElementById('nextBtn');
+  if (prev) prev.onclick = () => { if(currentStep>0){ currentStep--; renderStep(); } };
+  if (next && currentStep !== 6) next.onclick = () => { if(currentStep<steps.length-1){ currentStep++; renderStep(); } };
+}
+
+function goStep(i) { currentStep = i; renderStep(); }
+function restart() { currentStep = 0; userQuery = ''; renderStep(); }
+
+// ========== STEP 0: INTRO ==========
+function renderIntro() {
+  const L = T();
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.introNum}</div>
+        <div class="step-title">${L.introTitle}</div>
+        <div class="step-desc">${L.introDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.introAnalogy}
+        </div>
+
+        <div class="callout">${L.introCallout}</div>
+
+        <div style="margin-top:16px;">
+          <div style="color:#e0506a; font-weight:600; margin-bottom:10px;">${L.introFlowTitle}</div>
+          <div class="vis-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+            ${L.flowCards.map(s =>
+              `<div class="vis-card" style="text-align:center; padding:14px 8px;"><div style="font-size:24px;">${s.split(' ')[0]}</div><div style="font-size:12px; color:#94a3b8; margin-top:4px;">${s.split(' ').slice(1).join(' ')}</div></div>`
+            ).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 1: DOCUMENTS ==========
+function renderDocs() {
+  const L = T();
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(1)}</div>
+        <div class="step-title">${L.docsTitle}</div>
+        <div class="step-desc">${L.docsDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.docsAnalogy}
+        </div>
+
+        <div class="callout">${L.docsCallout}</div>
+
+        <div class="vis-grid" style="grid-template-columns: 1fr 1fr;">
+          ${documents.map((d) => `
+            <div class="vis-card">
+              <div class="vis-label">📄 ${d.source}</div>
+              <div class="vis-text">${d.text}</div>
+              <div style="margin-top:8px; font-size:11px; color:#64748b;">${d.text.split(/\s+/).length} ${L.words}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 2: PARSE & CLEAN ==========
+function renderParse() {
+  const L = T();
+  const d = documents[0];
+  const noiseByLang = {
+    es: { head: '&lt;!DOCTYPE html&gt;&lt;nav&gt;&lt;div class="header"&gt;', nav: 'Inicio | Productos | Blog | Contacto', page: 'Página 1 de 12', foot: '© 2024 · Todos los derechos reservados · Política de Cookies' },
+    en: { head: '&lt;!DOCTYPE html&gt;&lt;nav&gt;&lt;div class="header"&gt;', nav: 'Home | Products | Blog | Contact', page: 'Page 1 of 12', foot: '© 2024 · All rights reserved · Cookie Policy' },
+    pt: { head: '&lt;!DOCTYPE html&gt;&lt;nav&gt;&lt;div class="header"&gt;', nav: 'Início | Produtos | Blog | Contato', page: 'Página 1 de 12', foot: '© 2024 · Todos os direitos reservados · Política de Cookies' }
+  };
+  const noise = noiseByLang[lang] || noiseByLang.en;
+  const junk = (t) => `<span style="color:#64748b; background:#3a1d22; text-decoration:line-through; padding:0 2px;">${t}</span>`;
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(2)}</div>
+        <div class="step-title">${L.parseTitle}</div>
+        <div class="step-desc">${L.parseDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.parseAnalogy}
+        </div>
+
+        <div class="callout">${L.parseCallout}</div>
+
+        <div style="color:#e0506a; font-weight:600; margin:6px 0 6px;">${L.parseBefore}</div>
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:12px; font-family:monospace; font-size:11px; line-height:1.9;">
+          ${junk(noise.head)}<br>
+          ${junk(noise.nav)}<br>
+          ${junk(noise.page)}<br>
+          <span style="color:#cbd5e1;">${d.text}</span><br>
+          ${junk(noise.foot)}
+        </div>
+
+        <div class="arrow-flow">
+          <span class="arrow">↓</span>
+          <span style="font-size:13px; color:#818cf8;">${L.parseArrow}</span>
+          <span class="arrow">↓</span>
+        </div>
+
+        <div style="color:#34d399; font-weight:600; margin:6px 0 6px;">${L.parseAfter}</div>
+        <div class="vis-card match" style="font-size:13px; line-height:1.6;">
+          <div class="vis-label" style="color:#34d399;">📄 ${d.source}</div>
+          <div style="color:#cbd5e1;">${d.text}</div>
+        </div>
+
+        <div class="callout" style="margin-top:16px; border-left-color:#fbbf24;">
+          <strong style="color:#fbbf24;">${L.parseStructTitle}</strong><br>${L.parseStruct}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 3: CHUNKING ==========
+function renderChunk() {
+  const L = T();
+  const docChunks = documents.map(d => ({ source: d.source, chunks: chunkText(d.text) }));
+  const colors = ['c0','c1','c2'];
+
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(3)}</div>
+        <div class="step-title">${L.chunkTitle}</div>
+        <div class="step-desc">${L.chunkDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.chunkAnalogy}
+        </div>
+
+        <div class="callout">${L.chunkCallout}</div>
+
+        <div style="margin-top:16px;">
+          <div style="color:#e0506a; font-weight:600; margin-bottom:8px;">${L.chunkOverlapTitle}</div>
+          <div style="background:#0f172a; border-radius:8px; padding:12px; font-size:12px; font-family:monospace; color:#94a3b8; line-height:2;">
+            <span style="background:#4a141c; padding:2px 4px; border-radius:3px; color:#f0a3ad;">${L.chunkOv1}</span>
+            <br>
+            <span style="color:#64748b;">          </span><span style="background:#4a1942; padding:2px 4px; border-radius:3px; color:#f9a8d4;">${L.chunkOv2}</span>
+            <br>
+            <span style="color:#64748b;">                    </span><span style="background:#4a141c; padding:2px 4px; border-radius:3px; color:#f0a3ad;">${L.chunkOv3}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          ${docChunks.map((d) => `
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px; font-weight:600; color:#e0506a; margin-bottom:6px;">📄 ${d.source} ${L.chunkPerDoc(d.chunks.length)}</div>
+              ${d.chunks.map((c, ci) => `<span class="chunk-pill ${colors[ci%3]}">${c.slice(0,50)}${c.length>50?'...':''}</span>`).join('')}
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top:12px; text-align:center; color:#64748b; font-size:13px;">
+          ${L.chunkTotal(allChunks.length, documents.length)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 3: EMBEDDING ==========
+function renderEmbed() {
+  const L = T();
+  const sampleChunk = allChunks[0];
+  const sampleEmb = emb.embed(sampleChunk.text);
+  const topDims = emb.getTopDims(sampleEmb, 10);
+  const maxVal = Math.max(...topDims.map(d=>d.val));
+
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(4)}</div>
+        <div class="step-title">${L.embedTitle}</div>
+        <div class="step-desc">${L.embedDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.embedAnalogy}
+        </div>
+
+        <div class="callout">${L.embedCallout(emb.vocabulary.length)}</div>
+
+        <div style="margin-top:16px;">
+          <div style="color:#e0506a; font-weight:600; margin-bottom:6px;">${L.embedExampleTitle}</div>
+          <div style="background:#0f172a; border-radius:8px; padding:10px; margin-bottom:12px; font-size:12px; color:#94a3b8;">
+            "${sampleChunk.text.slice(0, 80)}..."
+          </div>
+
+          <div style="font-size:12px; color:#64748b; margin-bottom:8px;">${L.embedTopDims}</div>
+          ${topDims.map(d => `
+            <div class="emb-row">
+              <span class="emb-word">${d.word}</span>
+              <div class="emb-bar-bg">
+                <div class="emb-bar" style="width:${(d.val/maxVal*100).toFixed(0)}%; background: linear-gradient(90deg, #1763ff, #e07a8a);">
+                  ${d.val > maxVal*0.5 ? d.val.toFixed(3) : ''}
+                </div>
+              </div>
+              <span class="emb-val">${d.val.toFixed(4)}</span>
+            </div>
+          `).join('')}
+
+          <div style="margin-top:12px; text-align:center; font-size:12px; color:#64748b;">
+            ${L.embedFull(sampleEmb.slice(0,5).map(v=>v.toFixed(3)).join(', '), emb.vocabulary.length)}
+          </div>
+
+          <div style="text-align:center; margin-top:16px;">
+            <button class="btn btn-ghost" style="font-size:12.5px; padding:8px 16px;" onclick="ragOpenSemantics()">🤔 ${L.semBtn}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Opens the "syntax vs semantics" modal (reuses the generic arOpenModal builder).
+function ragOpenSemantics() {
+  if (typeof arOpenModal === 'function') arOpenModal(T().semantics);
+}
+
+// ========== STEP 4: VECTOR DB ==========
+function renderStore() {
+  const L = T();
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(5)}</div>
+        <div class="step-title">${L.storeTitle}</div>
+        <div class="step-desc">${L.storeDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.storeAnalogy}
+        </div>
+
+        <div class="callout">${L.storeCallout}</div>
+
+        <table class="vdb-table">
+          <thead>
+            <tr>${L.storeHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${vdb.vectors.map(v => {
+              const nonZero = v.embedding.filter(x=>x>0);
+              const topVals = [...v.embedding].sort((a,b)=>b-a).slice(0,12);
+              const maxV = Math.max(...topVals);
+              return `
+                <tr>
+                  <td style="color:#e0506a; font-family:monospace;">${v.id}</td>
+                  <td style="font-size:11px;">${v.metadata.source}</td>
+                  <td style="font-size:11px; max-width:300px;">${v.metadata.text.slice(0,45)}...</td>
+                  <td>
+                    <div class="vdb-mini">
+                      ${topVals.map(val => `<div class="vdb-mini-bar" style="height:${Math.max(2,val/maxV*16)}px;"></div>`).join('')}
+                    </div>
+                  </td>
+                  <td style="font-family:monospace; font-size:11px;">${nonZero.length}/${v.embedding.length}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div style="margin-top:14px; text-align:center; color:#34d399; font-size:13px; font-weight:600;">
+          ${L.storeDone(vdb.vectors.length)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 5: QUERY ==========
+function renderQuery() {
+  const L = T();
+  const val = (userQuery || L.defaultQuery).replace(/"/g, '&quot;');
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(6)}</div>
+        <div class="step-title">${L.queryTitle}</div>
+        <div class="step-desc">${L.queryDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.queryAnalogy}
+        </div>
+
+        <div class="callout">${L.queryCallout}</div>
+
+        <div class="query-section">
+          <div style="color:#e0506a; font-weight:600; margin-bottom:8px;">${L.queryWrite}</div>
+          <div class="query-box">
+            <input class="query-input" id="queryInput" placeholder="${L.queryPlaceholder}" value="${val}" />
+          </div>
+          <div class="presets">
+            ${L.presets.map(p => `<span class="preset" onclick="document.getElementById('queryInput').value=${JSON.stringify(p.q)}">${p.label}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function submitQuery() {
+  userQuery = document.getElementById('queryInput').value.trim();
+  if (!userQuery) return;
+  currentStep = 7;
+  renderStep();
+}
+
+// ========== STEP 6: RETRIEVE ==========
+function renderRetrieve() {
+  const L = T();
+  const q = userQuery || L.defaultQuery;
+  const qEmb = emb.embed(q);
+  const qTopDims = emb.getTopDims(qEmb, 6);
+  const results = vdb.search(qEmb, 3);
+  const maxScore = Math.max(...results.map(r=>r.score)) || 1;
+  const medals = ['🥇','🥈','🥉'];
+  const rankColors = ['#fbbf24','#94a3b8','#78716c'];
+
+  window._lastResults = results;
+  window._lastQuery = q;
+
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(7)}</div>
+        <div class="step-title">${L.retrieveTitle}</div>
+        <div class="step-desc">${L.retrieveDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.retrieveAnalogy}
+        </div>
+
+        <div class="callout">${L.retrieveCallout}</div>
+
+        <div class="formula">
+          cos(θ) = (A · B) / (‖A‖ × ‖B‖)
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="color:#e0506a; font-weight:600; margin-bottom:6px;">${L.retrieveQEmb(q)}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            ${qTopDims.map(d => `<span class="vis-tag active">${d.word}: ${d.val.toFixed(3)}</span>`).join('')}
+          </div>
+        </div>
+
+        <div class="arrow-flow">
+          <span>${L.retrieveFlow1}</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span>${L.retrieveFlow2(vdb.vectors.length)}</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span>${L.retrieveFlow3}</span>
+        </div>
+
+        <div style="color:#e0506a; font-weight:600; margin:16px 0 10px;">${L.retrieveResults}</div>
+        ${results.map((r, i) => `
+          <div class="sim-card rank-${i+1}" style="animation: fadeUp 0.4s ease ${i*150}ms both;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <span style="font-size:20px;">${medals[i]}</span>
+                <span class="sim-score" style="color:${rankColors[i]};">${(r.score*100).toFixed(1)}%</span>
+                <span style="font-size:12px; color:#64748b; margin-left:8px;">${L.similarity}</span>
+              </div>
+              <span style="font-size:11px; color:#e0506a; background:#2a0e13; padding:3px 8px; border-radius:4px;">${r.metadata.source}</span>
+            </div>
+            <div style="font-size:13px; color:#94a3b8; margin-top:8px; line-height:1.5;">"${r.metadata.text}"</div>
+            <div class="sim-bar"><div class="sim-bar-fill" style="width:${(r.score/maxScore*100).toFixed(0)}%; background:${rankColors[i]};"></div></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ========== STEP 7: GENERATE ==========
+function renderGenerate() {
+  const L = T();
+  const results = window._lastResults || [];
+  const q = window._lastQuery || '';
+
+  document.getElementById('main').innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">${L.stepOf(8)}</div>
+        <div class="step-title">${L.genTitle}</div>
+        <div class="step-desc">${L.genDesc}</div>
+      </div>
+      <div class="step-body">
+        <div class="analogy">
+          <div class="analogy-label">${L.analogyLabel}</div>
+          ${L.genAnalogy}
+        </div>
+
+        <div class="callout">${L.genCallout(q)}</div>
+
+        <div style="color:#e0506a; font-weight:600; margin:16px 0 8px;">${L.genContextLabel}</div>
+        ${results.map((r, i) => `
+          <div class="vis-card" style="margin-bottom:6px; border-left: 3px solid ${['#fbbf24','#94a3b8','#78716c'][i]};">
+            <div style="font-size:11px; color:#64748b;">${L.genContextItem(i+1, (r.score*100).toFixed(1), r.metadata.source)}</div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">"${r.metadata.text}"</div>
+          </div>
+        `).join('')}
+
+        <div class="arrow-flow" style="margin:16px 0;">
+          <span>${L.genFlow1}</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span>🤖 LLM</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span class="arrow">→</span>
+          <span>${L.genFlow2}</span>
+        </div>
+
+        <div class="llm-box">
+          <div class="llm-thinking">${L.genThinking}</div>
+          <div class="llm-answer">
+            ${generateAnswer(q, results)}
+          </div>
+          <div style="margin-top:14px; padding-top:12px; border-top:1px solid #334155;">
+            <div style="font-size:11px; color:#64748b; margin-bottom:6px;">${L.genSources}</div>
+            ${results.map(r => `<span class="llm-source">${r.metadata.source} (${(r.score*100).toFixed(0)}%)</span>`).join('')}
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top:16px; border-left-color:#34d399;">
+          ${L.genAdvantages}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function generateAnswer(q, results) {
+  const ql = q.toLowerCase();
+  const topText = results[0]?.metadata.text || '';
+  const topSource = results[0]?.metadata.source || '';
+
+  if (lang === 'en') {
+    if (ql.includes('javascript') && ql.includes('server')) {
+      return `According to the <strong>${topSource}</strong> documentation, JavaScript runs on the server thanks to <strong>Node.js</strong>, a runtime built on Chrome's V8 engine. Node.js uses a non-blocking, event-driven input/output model, which makes it lightweight and efficient for server-side applications.`;
+    }
+    if (ql.includes('artificial intelligence') || ql.includes('data science') || ql.includes(' ai') || ql.includes('ai ')) {
+      return `According to <strong>${topSource}</strong>, <strong>Python</strong> is the most widely used language for artificial intelligence and data science. It's a high-level, interpreted language with clear, readable syntax that supports multiple programming paradigms including object-oriented and functional programming.`;
+    }
+    if (ql.includes('database') || ql.includes('data stored') || ql.includes('sql')) {
+      return `According to <strong>${topSource}</strong>, there are two main approaches: <strong>relational databases</strong> (like PostgreSQL and MySQL) that use tables and SQL as the query language, and <strong>NoSQL databases</strong> (like MongoDB) that store data in flexible JSON documents.`;
+    }
+    if (ql.includes('react') || ql.includes('dom')) {
+      return `According to <strong>${topSource}</strong>, React is a JavaScript library for building user interfaces, developed by Facebook. It optimizes browser updates using a <strong>virtual DOM</strong> — an in-memory representation of the real DOM that lets it compute the minimal changes needed before applying them.`;
+    }
+    return `Based on the retrieved documents, the most relevant information for your question comes from <strong>${topSource}</strong>: "${topText.slice(0, 150)}..."`;
+  }
+
+  if (lang === 'pt') {
+    if (ql.includes('javascript') && ql.includes('servidor')) {
+      return `Segundo a documentação de <strong>${topSource}</strong>, o JavaScript roda no servidor graças ao <strong>Node.js</strong>, um ambiente de execução construído com o motor V8 do Chrome. O Node.js usa um modelo de entrada/saída sem bloqueio e orientado a eventos, o que o torna leve e eficiente para aplicações do lado do servidor.`;
+    }
+    if (ql.includes('inteligência artificial') || ql.includes('inteligencia artificial') || ql.includes('ciência de dados') || ql.includes('ciencia de dados')) {
+      return `De acordo com <strong>${topSource}</strong>, <strong>Python</strong> é a linguagem mais usada para inteligência artificial e ciência de dados. É uma linguagem de alto nível, interpretada, com sintaxe clara e legível que suporta múltiplos paradigmas de programação incluindo orientação a objetos e programação funcional.`;
+    }
+    if ((ql.includes('banco') && ql.includes('dados')) || ql.includes('sql')) {
+      return `Segundo <strong>${topSource}</strong>, existem duas abordagens principais: os <strong>bancos de dados relacionais</strong> (como PostgreSQL e MySQL) que usam tabelas e SQL como linguagem de consulta, e os <strong>bancos de dados NoSQL</strong> (como MongoDB) que armazenam dados em documentos JSON flexíveis.`;
+    }
+    if (ql.includes('react') || ql.includes('dom')) {
+      return `De acordo com <strong>${topSource}</strong>, React é uma biblioteca de JavaScript para construir interfaces de usuário, desenvolvida pelo Facebook. Otimiza as atualizações do navegador usando um <strong>DOM virtual</strong> — uma representação em memória do DOM real que permite calcular as mudanças mínimas necessárias antes de aplicá-las.`;
+    }
+    return `Com base nos documentos recuperados, a informação mais relevante sobre sua pergunta vem de <strong>${topSource}</strong>: "${topText.slice(0, 150)}..."`;
+  }
+
+  // Spanish
+  if (ql.includes('javascript') && ql.includes('servidor')) {
+    return `Según la documentación de <strong>${topSource}</strong>, JavaScript se ejecuta en el servidor gracias a <strong>Node.js</strong>, un entorno de ejecución construido con el motor V8 de Chrome. Node.js usa un modelo de operaciones de entrada/salida sin bloqueo y orientado a eventos, lo que lo hace liviano y eficiente para aplicaciones del lado del servidor.`;
+  }
+  if (ql.includes('inteligencia artificial') || ql.includes('ciencia de datos')) {
+    return `De acuerdo con <strong>${topSource}</strong>, <strong>Python</strong> es el lenguaje más utilizado para inteligencia artificial y ciencia de datos. Es un lenguaje de alto nivel, interpretado, con sintaxis clara y legible que soporta múltiples paradigmas de programación incluyendo orientación a objetos y programación funcional.`;
+  }
+  if (ql.includes('base') && ql.includes('datos')) {
+    return `Según <strong>${topSource}</strong>, existen dos enfoques principales: las <strong>bases de datos relacionales</strong> (como PostgreSQL y MySQL) que usan tablas y SQL como lenguaje de consulta, y las <strong>bases de datos NoSQL</strong> (como MongoDB) que almacenan datos en documentos JSON flexibles.`;
+  }
+  if (ql.includes('react') || ql.includes('dom')) {
+    return `De acuerdo con <strong>${topSource}</strong>, React es una biblioteca de JavaScript para construir interfaces de usuario, desarrollada por Facebook. Optimiza las actualizaciones del navegador usando un <strong>DOM virtual</strong> — una representación en memoria del DOM real que permite calcular los cambios mínimos necesarios antes de aplicarlos.`;
+  }
+  return `Basándome en los documentos recuperados, la información más relevante sobre tu pregunta proviene de <strong>${topSource}</strong>: "${topText.slice(0, 150)}..."`;
+}
+
+// ========== INIT ==========
+document.querySelectorAll('#langToggle button').forEach(b => {
+  b.addEventListener('click', () => setLang(b.dataset.lang));
+});
+// ========== GLOSSARY (term tooltips) ==========
+const GLOSSARY = (function () {
+  function build(pairs) {
+    const o = {};
+    for (const [keys, def] of pairs) for (const k of keys.split('|')) o[k.toLowerCase()] = def;
+    return o;
+  }
+  return {
+    es: build([
+      ['RAG', 'Retrieval-Augmented Generation: darle al LLM contexto sacado de tus documentos al momento de responder, sin re-entrenarlo.'],
+      ['GraphRAG', 'Variante de RAG que organiza los documentos como un grafo de entidades y relaciones, y busca recorriéndolo.'],
+      ['Advanced RAG', 'RAG de producción: un router elige la estrategia por pregunta y orquesta agentes, reranking, guardrails y evaluación.'],
+      ['embedding|embeddings', 'Vector de números que representa el significado de un texto; textos parecidos quedan cerca.'],
+      ['chunk|chunks|chunking', 'Trocear los documentos en fragmentos pequeños (chunks) para recuperar solo la parte relevante.'],
+      ['TF-IDF', 'Método clásico para vectorizar texto según qué tan frecuente y qué tan rara es cada palabra.'],
+      ['similitud coseno|coseno', 'Mide el ángulo entre dos vectores: 1 = misma dirección (muy parecidos), 0 = sin relación.'],
+      ['Vector DB|base de datos vectorial', 'Base de datos que guarda embeddings y encuentra los más parecidos muy rápido.'],
+      ['Graph DB', 'Base de datos que guarda entidades y relaciones como un grafo y se consulta recorriéndolo.'],
+      ['LLM', 'Large Language Model: el modelo que genera las respuestas (p. ej. GPT, Claude, Gemini).'],
+      ['token|tokens', 'Unidad mínima de texto para un LLM (aprox. ¾ de palabra); los modelos tienen un límite de tokens.'],
+      ['grafo de conocimiento', 'Red de entidades (nodos) unidas por relaciones (aristas) extraídas de los documentos.'],
+      ['entidad|entidades', 'Un concepto o cosa del texto (p. ej. React, Node.js) que se vuelve un nodo del grafo.'],
+      ['relación|relaciones', 'El vínculo entre dos entidades, p. ej. «React —biblioteca de→ JavaScript».'],
+      ['tripleta|tripletas', 'Un hecho con forma (entidad) —relación→ (entidad); lo que extrae GraphRAG.'],
+      ['comunidad|comunidades', 'Grupo de entidades muy conectadas entre sí; se le genera un resumen para preguntas globales.'],
+      ['Leiden', 'Algoritmo de clustering que agrupa los nodos densamente conectados en comunidades.'],
+      ['entity linking', 'Detectar qué entidades del grafo menciona la pregunta, para anclar la búsqueda.'],
+      ['multi-salto', 'Pregunta cuya respuesta exige conectar varios documentos que no se mencionan entre sí.'],
+      ['router|routing', 'Componente que decide, para cada pregunta, qué estrategia y qué agentes usar.'],
+      ['agente|agentes', 'Programa que usa un LLM + herramientas para resolver una sub-tarea de forma autónoma.'],
+      ['reranker|reranking', 'Modelo que reevalúa y reordena los resultados recuperados según su relevancia real.'],
+      ['guardrails', 'Reglas de seguridad y control: permisos (RBAC/ABAC), filtros y responder solo desde el contexto.'],
+      ['RBAC/ABAC', 'RBAC = permisos por rol; ABAC = permisos por atributos (usuario, recurso, contexto). Definen quién puede ver qué.'],
+      ['Ragas', 'Framework para evaluar sistemas RAG con métricas como fidelidad y relevancia de la respuesta.'],
+      ['fidelidad', 'Qué tan apegada está la respuesta a las fuentes recuperadas (sin inventar).'],
+      ['búsqueda híbrida|recuperación híbrida', 'Combinar búsqueda vectorial (Vector DB) y de grafo (Graph DB) en la misma consulta.'],
+      ['metadata', 'Datos sobre el documento (fuente, fecha, autor…) que ayudan a filtrar y recuperar mejor.']
+    ]),
+    en: build([
+      ['RAG', 'Retrieval-Augmented Generation: giving the LLM context pulled from your documents at answer time, without retraining it.'],
+      ['GraphRAG', 'A RAG variant that organizes documents as a graph of entities and relationships, and searches by traversing it.'],
+      ['Advanced RAG', 'Production RAG: a router picks the strategy per question and orchestrates agents, reranking, guardrails and evaluation.'],
+      ['embedding|embeddings', 'A vector of numbers that represents the meaning of a text; similar texts end up close together.'],
+      ['chunk|chunks|chunking', 'Splitting documents into small fragments (chunks) so you retrieve only the relevant part.'],
+      ['TF-IDF', 'A classic way to vectorize text based on how frequent and how rare each word is.'],
+      ['cosine similarity|cosine', 'Measures the angle between two vectors: 1 = same direction (very similar), 0 = unrelated.'],
+      ['Vector DB', 'A database that stores embeddings and finds the most similar ones very fast.'],
+      ['Graph DB', 'A database that stores entities and relationships as a graph, queried by traversal.'],
+      ['LLM', 'Large Language Model: the model that generates answers (e.g. GPT, Claude, Gemini).'],
+      ['token|tokens', 'The smallest unit of text for an LLM (~¾ of a word); models have a token limit.'],
+      ['knowledge graph', 'A network of entities (nodes) linked by relationships (edges) extracted from the documents.'],
+      ['entity|entities', 'A concept or thing in the text (e.g. React, Node.js) that becomes a graph node.'],
+      ['relationship|relationships', 'The link between two entities, e.g. «React —library of→ JavaScript».'],
+      ['triple|triples', 'A fact shaped (entity) —relation→ (entity); what GraphRAG extracts.'],
+      ['community|communities', 'A group of tightly connected entities; a summary is generated for global questions.'],
+      ['Leiden', 'A clustering algorithm that groups densely connected nodes into communities.'],
+      ['entity linking', 'Detecting which graph entities the question mentions, to anchor the search.'],
+      ['multi-hop', 'A question whose answer requires connecting several documents that never mention each other.'],
+      ['router|routing', 'The component that decides, per question, which strategy and which agents to use.'],
+      ['agent|agents', 'A program that uses an LLM + tools to solve a sub-task autonomously.'],
+      ['reranker|reranking', 'A model that re-scores and reorders the retrieved results by their real relevance.'],
+      ['guardrails', 'Safety and control rules: permissions (RBAC/ABAC), filters, and answering only from the context.'],
+      ['RBAC/ABAC', 'RBAC = role-based permissions; ABAC = attribute-based (user, resource, context). They define who can see what.'],
+      ['Ragas', 'A framework to evaluate RAG systems with metrics like faithfulness and answer relevance.'],
+      ['faithfulness', 'How closely the answer sticks to the retrieved sources (without making things up).'],
+      ['hybrid retrieval|hybrid search', 'Combining vector search (Vector DB) and graph search (Graph DB) in the same query.'],
+      ['metadata', 'Data about the document (source, date, author…) that helps filter and retrieve better.']
+    ]),
+    pt: build([
+      ['RAG', 'Retrieval-Augmented Generation: dar ao LLM contexto tirado dos seus documentos na hora de responder, sem re-treiná-lo.'],
+      ['GraphRAG', 'Variante de RAG que organiza os documentos como um grafo de entidades e relações, e busca percorrendo-o.'],
+      ['Advanced RAG', 'RAG de produção: um router escolhe a estratégia por pergunta e orquestra agentes, reranking, guardrails e avaliação.'],
+      ['embedding|embeddings', 'Vetor de números que representa o significado de um texto; textos parecidos ficam perto.'],
+      ['chunk|chunks|chunking', 'Dividir os documentos em fragmentos pequenos (chunks) para recuperar só a parte relevante.'],
+      ['TF-IDF', 'Método clássico para vetorizar texto conforme quão frequente e quão rara é cada palavra.'],
+      ['similaridade de cosseno|cosseno', 'Mede o ângulo entre dois vetores: 1 = mesma direção (muito parecidos), 0 = sem relação.'],
+      ['Vector DB|banco de dados vetorial', 'Banco de dados que guarda embeddings e encontra os mais parecidos muito rápido.'],
+      ['Graph DB', 'Banco de dados que guarda entidades e relações como um grafo e é consultado percorrendo-o.'],
+      ['LLM', 'Large Language Model: o modelo que gera as respostas (p. ex. GPT, Claude, Gemini).'],
+      ['token|tokens', 'Unidade mínima de texto para um LLM (aprox. ¾ de palavra); os modelos têm um limite de tokens.'],
+      ['grafo de conhecimento', 'Rede de entidades (nós) unidas por relações (arestas) extraídas dos documentos.'],
+      ['entidade|entidades', 'Um conceito ou coisa do texto (p. ex. React, Node.js) que vira um nó do grafo.'],
+      ['relação|relações', 'O vínculo entre duas entidades, p. ex. «React —biblioteca de→ JavaScript».'],
+      ['tripla|triplas', 'Um fato na forma (entidade) —relação→ (entidade); o que o GraphRAG extrai.'],
+      ['comunidade|comunidades', 'Grupo de entidades muito conectadas entre si; gera-se um resumo para perguntas globais.'],
+      ['Leiden', 'Algoritmo de clustering que agrupa os nós densamente conectados em comunidades.'],
+      ['entity linking', 'Detectar quais entidades do grafo a pergunta menciona, para ancorar a busca.'],
+      ['multi-hop|multi-salto', 'Pergunta cuja resposta exige conectar vários documentos que não se mencionam entre si.'],
+      ['router|routing', 'Componente que decide, para cada pergunta, qual estratégia e quais agentes usar.'],
+      ['agente|agentes', 'Programa que usa um LLM + ferramentas para resolver uma sub-tarefa de forma autônoma.'],
+      ['reranker|reranking', 'Modelo que reavalia e reordena os resultados recuperados conforme sua relevância real.'],
+      ['guardrails', 'Regras de segurança e controle: permissões (RBAC/ABAC), filtros e responder só a partir do contexto.'],
+      ['RBAC/ABAC', 'RBAC = permissões por papel; ABAC = por atributos (usuário, recurso, contexto). Definem quem pode ver o quê.'],
+      ['Ragas', 'Framework para avaliar sistemas RAG com métricas como fidelidade e relevância da resposta.'],
+      ['fidelidade', 'Quão fiel é a resposta às fontes recuperadas (sem inventar).'],
+      ['busca híbrida|recuperação híbrida', 'Combinar busca vetorial (Vector DB) e de grafo (Graph DB) na mesma consulta.'],
+      ['metadata', 'Dados sobre o documento (fonte, data, autor…) que ajudam a filtrar e recuperar melhor.'],
+      ['query', 'A pergunta ou consulta do usuário.']
+    ])
+  };
+})();
+
+// Walks text nodes under `root` and wraps the first occurrence of each glossary
+// term in a tooltip span. Skips code/inputs/svg and already-wrapped terms.
+function glossarize(root) {
+  const G = GLOSSARY[lang];
+  if (!G || !root) return;
+  const keys = Object.keys(G).sort((a, b) => b.length - a.length);
+  const alt = keys.map(k => k.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('|');
+  let re;
+  try { re = new RegExp('(?<![\\wÀ-ÿ])(' + alt + ')(?![\\wÀ-ÿ])', 'gi'); }
+  catch (e) { return; }
+  const seen = new Set();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      const p = node.parentElement;
+      if (!p || p.closest('.term, code, script, style, svg, input, textarea, .query-input')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const nodes = [];
+  let nd;
+  while ((nd = walker.nextNode())) nodes.push(nd);
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    re.lastIndex = 0;
+    let m, last = 0, frag = null;
+    while ((m = re.exec(text))) {
+      const key = m[1].toLowerCase();
+      if (seen.has(key) || !G[key]) continue;
+      seen.add(key);
+      if (!frag) frag = document.createDocumentFragment();
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const span = document.createElement('span');
+      span.className = 'term';
+      span.tabIndex = 0;
+      span.appendChild(document.createTextNode(m[1]));
+      const tip = document.createElement('span');
+      tip.className = 'tip';
+      tip.textContent = G[key];
+      span.appendChild(tip);
+      frag.appendChild(span);
+      last = m.index + m[1].length;
+    }
+    if (frag) {
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    }
+  }
+}
+
+function setupGlossary() {
+  const root = document.getElementById('main');
+  if (!root) return;
+  const obs = new MutationObserver(() => {
+    obs.disconnect();
+    try { glossarize(root); } catch (e) {}
+    obs.observe(root, { childList: true, subtree: true });
+  });
+  glossarize(root);
+  obs.observe(root, { childList: true, subtree: true });
+  // Tap support (mobile): toggle the tooltip on click, close others.
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest ? e.target.closest('.term') : null;
+    document.querySelectorAll('.term.show').forEach(el => { if (el !== t) el.classList.remove('show'); });
+    if (t) t.classList.toggle('show');
+  });
+}
+
+initEngine();
+renderChrome();
+renderStep();
+setupGlossary();
+</script>
+<script src="graphrag.js"></script>
+<script src="advanced-rag.js"></script>
+<script src="harness.js"></script>
+</body>
+</html>
