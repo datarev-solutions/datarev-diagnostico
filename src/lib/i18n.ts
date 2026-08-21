@@ -7,6 +7,7 @@ export function t(value: L, locale: Locale): string {
 
 export const UI = {
   appName: { es: "Diagnóstico de Madurez", en: "Maturity Assessment" },
+  homeLabel: { es: "Inicio · DataRev", en: "Home · DataRev" },
   tagline: {
     es: "Diagnóstico de madurez en Datos e Inteligencia Artificial",
     en: "Data and Artificial Intelligence maturity assessment",

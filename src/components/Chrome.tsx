@@ -109,6 +109,45 @@ export function BrochureLink({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * Home, meaning the DataRev site itself — `/solutions`, the marketing page,
+ * not this app's own landing. It replaced the "Soluciones" nav tab: the same
+ * destination reads better as the house icon everyone already reaches for than
+ * as one more word competing with the section names beside it.
+ */
+function HomeLink() {
+  const { t } = useApp();
+  const pathname = usePathname();
+  const active = pathname.startsWith("/solutions");
+
+  return (
+    <Link
+      href="/solutions"
+      aria-label={t(UI.homeLabel)}
+      title={t(UI.homeLabel)}
+      aria-current={active ? "page" : undefined}
+      className={`rounded-lg p-2 transition ${
+        active
+          ? "bg-[var(--surface-2)] text-[var(--text-primary)]"
+          : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+      }`}
+    >
+      <svg
+        viewBox="0 0 20 20"
+        className="h-[18px] w-[18px]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 8.5 10 3l7 5.5V16a1 1 0 0 1-1 1h-3.5v-5h-5v5H4a1 1 0 0 1-1-1V8.5Z" />
+      </svg>
+    </Link>
+  );
+}
+
 /** Top-level sections. Underlined when the route is active. */
 function Nav() {
   const { t } = useApp();
@@ -116,7 +155,6 @@ function Nav() {
 
   const tabs = [
     { href: "/", label: t(UI.appName), match: (p: string) => p === "/" || p.startsWith("/assessment") || p.startsWith("/results") },
-    { href: "/solutions", label: "Soluciones", match: (p: string) => p.startsWith("/solutions") },
     { href: "/casos-de-uso", label: t(UC.navLabel), match: (p: string) => p.startsWith("/casos-de-uso") },
     { href: "/calculadora", label: t(CALC.navLabel), match: (p: string) => p.startsWith("/calculadora") },
     { href: "/labs", label: t(LABS.navLabel), match: (p: string) => p.startsWith("/labs") },
@@ -159,6 +197,7 @@ export function Header() {
             <DataRevLogo className="h-12" />
           </a>
           <span className="hidden h-6 w-px bg-[var(--border)] sm:block" />
+          <HomeLink />
           <Nav />
         </div>
         <div className="flex items-center gap-3">

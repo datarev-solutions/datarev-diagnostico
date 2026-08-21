@@ -175,7 +175,7 @@ const DICT: Record<string, DictEntry> = {
   dg_back: { es: "Atrás", en: "Back" },
   dg_lvl: { es: "Tu nivel de madurez", en: "Your maturity level" },
   dg_recs: { es: "Dónde podemos ayudarte primero", en: "Where we can help you first" },
-  dg_rcta: { es: "Calculadora Build vs Buy & Diagnóstico", en: "Build vs Buy Calculator & Assessment" },
+  dg_rcta: { es: "Haz el diagnóstico completo", en: "Take the full assessment" },
   dg_email: { es: "Envíanos tu resultado", en: "Email us your result" },
   dg_restart: { es: "↺ Repetir", en: "↺ Retake" },
   dg_pts: { es: "de 21 pts", en: "of 21 pts" },
@@ -577,13 +577,9 @@ export function DataRevLanding() {
               <a href="#talento" className="hover:text-[#021019] transition-colors">{t("nav_talento")}</a>
               <a href="#diferencia" className="hover:text-[#021019] transition-colors">{t("nav_diferencia")}</a>
               <a href="#proceso" className="hover:text-[#021019] transition-colors">{t("nav_proceso")}</a>
-              <a href="#diagnostico" className="hover:text-[#021019] transition-colors">{t("nav_diag")}</a>
               <Link href="/calculadora" className="hover:text-[#021019] transition-colors flex items-center gap-1 font-bold text-[#04081f]">
                 <span>Calculadoras</span>
                 <span className="text-[10px] bg-[#04081f] text-white px-1.5 py-0.5 rounded-full">Pro</span>
-              </Link>
-              <Link href="/assessment" className="hover:text-[#021019] transition-colors font-bold text-[#04081f]">
-                Diagnóstico 40p
               </Link>
               <a href="#contacto" className="hover:text-[#021019] transition-colors">{t("nav_contacto")}</a>
             </nav>
@@ -604,7 +600,7 @@ export function DataRevLanding() {
               </button>
 
               <Link
-                href="/calculadora#build-vs-buy"
+                href="/"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#04081f] text-white font-semibold text-xs hover:bg-[#0a1444] transition shadow-md hover:-translate-y-0.5"
               >
                 <svg className="w-4 h-4 stroke-[#00c2ff] fill-none" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -644,15 +640,13 @@ export function DataRevLanding() {
               <a href="#talento" onClick={() => setNavOpen(false)}>{t("nav_talento")}</a>
               <a href="#diferencia" onClick={() => setNavOpen(false)}>{t("nav_diferencia")}</a>
               <a href="#proceso" onClick={() => setNavOpen(false)}>{t("nav_proceso")}</a>
-              <a href="#diagnostico" onClick={() => setNavOpen(false)}>{t("nav_diag")}</a>
               <Link href="/calculadora" onClick={() => setNavOpen(false)} className="text-[#00c2ff]">Calculadoras (Build vs Buy, LLM Cost, Agentic)</Link>
-              <Link href="/assessment" onClick={() => setNavOpen(false)} className="text-[#00c2ff]">Diagnóstico Completo 40p</Link>
               <Link href="/casos-de-uso" onClick={() => setNavOpen(false)}>Casos de Uso AI</Link>
               <Link href="/labs" onClick={() => setNavOpen(false)}>GraphRAG & AI Labs</Link>
               <a href="#contacto" onClick={() => setNavOpen(false)}>{t("nav_contacto")}</a>
               <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
                 <Link
-                  href="/calculadora#build-vs-buy"
+                  href="/"
                   onClick={() => setNavOpen(false)}
                   className="w-full text-center py-2.5 rounded-full bg-[#1763ff] text-white font-semibold text-sm"
                 >
@@ -691,7 +685,7 @@ export function DataRevLanding() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                href="/calculadora#build-vs-buy"
+                href="/"
                 className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-[#00c2ff] via-[#1763ff] to-[#0a2bb0] text-white font-semibold text-sm shadow-[0_12px_34px_-10px_rgba(10,63,214,0.8)] hover:shadow-[0_20px_44px_-10px_rgba(0,194,255,0.7)] hover:-translate-y-0.5 transition"
               >
                 <span>{t("hero_cta1")}</span>
@@ -1087,7 +1081,7 @@ export function DataRevLanding() {
 
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Link
-                      href="/calculadora#build-vs-buy"
+                      href="/"
                       className="px-6 py-3 rounded-full bg-gradient-to-r from-[#00c2ff] via-[#1763ff] to-[#0a2bb0] text-white font-semibold text-xs shadow-md hover:-translate-y-0.5 transition"
                     >
                       {t("dg_rcta")} →
@@ -1486,7 +1480,7 @@ export function DataRevLanding() {
                 <a href="#servicios" className="hover:text-white transition">{t("nav_servicios")}</a>
                 <a href="#talento" className="hover:text-white transition">{t("nav_talento")}</a>
                 <a href="#diferencia" className="hover:text-white transition">{t("nav_diferencia")}</a>
-                <a href="#diagnostico" className="hover:text-white transition">{t("nav_diag")}</a>
+                <Link href="/" className="hover:text-white transition">{t("nav_diag")}</Link>
                 <a href="#impacto" className="hover:text-white transition">{t("nav_impacto")}</a>
                 <a href="#contacto" className="hover:text-white transition">{t("nav_contacto")}</a>
               </nav>
